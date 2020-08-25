@@ -1,6 +1,12 @@
 name: CI
 
-on: [ push, pull_request ]
+on:
+  push:
+    branches-ignore:
+      - 'coverity_scan'
+  pull_request:
+    branches-ignore:
+      - 'coverity_scan'
 
 jobs:
   build-ubuntu-latest-minimal-gcc:

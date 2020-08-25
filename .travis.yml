@@ -1,26 +1,35 @@
+os: linux
+dist: bionic
 language: c
 
-compiler:
-  - clang
-  - gcc
 
-os:
-  - freebsd
-  - linux
-  - osx
+git:
+  depth: 3
 
-arch:
-  - amd64
-  - s390x
 
-before_script:
-  if [[ ${TRAVIS_CPU_ARCH} == 's390x' ]]; then
-      sudo apt-get update && sudo apt-get install -y libncursesw5-dev ;
-  fi
+env:
+  global:
+   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+   #   via the "travis encrypt" command using the project repo's public key
+  - secure: "gTntggfAlZ8pihPaMveYOjOekoyVjb1GRwBYhbxANSHznlZVoDyZ6+Qp1VNTQFTqs6eD7anuWYj8VAGWWUFDB3aPi20vwFbJ6WzpLgYFubZcwZNy++fONQf23R+0ZpXclzWwhvXrvaMKxjqlJ+HfwR5+cQIZXfmMqVhql6Dg+WcSyTTR8hBX9dZL4kAUt7JfjuYUhWK7fZNspwKfx4L+/rjdxhPjt4jcQqhAhmogxbNhB7lwnqUeXdOe/7lLP/CDjS6xEZ0dKLln6273CM/zZu0tE3+SSUG4wwwo11wsIZEb0CiItSieFp2uB46RuXmgMVzYf2spmcSlJbrt3o6hw2/xaBElUMRQFo3ZhVmqwn7T0wj3Dtsy+hRdx0V7fABeAaOiH8g1sz7bwsMXajiCTXQO787pWdPdo1o/1t/6aqpLwbDb8/lJH2vEBM+y6G7qVWKdET8usJYNKPoaoQ3TnhYh6FayazNuJTuxRmjxh94SIAh+9ko0ZQkUYqcJa5F4DlRXgJ5uGIAJvgLJX/7N59PNQoWM8qWpRJyoFHLbX6vFmKyZhKIMnQpTijv/RnLHcZGwG6ESwCSq8E9McOi4Dc8je6/fdHouGovaiNoKNftLF3cNBhc3Fc7+F8W5dzFADyhhBro2QfMaP1Ki9evzYHcZsQx1YBerQUIGamCRk7A="
+
+
+addons:
+  apt:
+    packages:
+      - libncursesw5-dev
+      - libhwloc-dev
+      - libnl-3-dev
+      - libnl-genl-3-dev
+  coverity_scan:
+    project:
+      name: "cgzones/htop"
+      description: "Build submitted via Travis CI"
+    notification_email: cgzones@googlemail.com
+    build_command_prepend: "./autogen.sh && ./configure --disable-silent-rules --enable-openvz --enable-cgroup --enable-vserver --enable-ancient-vserver --enable-taskstats --enable-unicode --enable-linux-affinity --enable-setuid --enable-delayacct && make clean"
+    build_command: "make"
+    branch_pattern: coverity_scan
+
 
 script:
-  - ./autogen.sh
-  # clang might warn about C11 generic selections in isnan()
-  - CFLAGS=-Wno-c11-extensions ./configure --enable-werror
-  - make -k
-  - CFLAGS=-Wno-c11-extensions make distcheck DISTCHECK_CONFIGURE_FLAGS=--enable-werror
+  - cat "${TRAVIS_BUILD_DIR}/cov-int/scm_log.txt"
