@@ -403,3 +403,25 @@ void Vector_splice(Vector* this, Vector* from) {
       this->array[olditems + j] = from->array[j];
    }
 }
+
+void Vector_swap(Vector* a, Vector* b) {
+   assert(Vector_isConsistent(a));
+   assert(Vector_isConsistent(b));
+   assert(a->type == b->type);
+   assert(a->owner == b->owner);
+
+   Object** tmpArray = a->array;
+   int tmpArraySize = a->arraySize;
+   int tmpGrowthRate = a->growthRate;
+   int tmpItems = a->items;
+
+   a->array = b->array;
+   a->arraySize = b->arraySize;
+   a->growthRate = b->growthRate;
+   a->items = b->items;
+
+   b->array = tmpArray;
+   b->arraySize = tmpArraySize;
+   b->growthRate = tmpGrowthRate;
+   b->items = tmpItems;
+}
