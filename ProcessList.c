@@ -452,10 +452,7 @@ static void ProcessList_buildTree(ProcessList* this) {
       assert(i < size);
    }
 
-   // Swap listings around
-   Vector* t = this->processes;
-   this->processes = this->processes2;
-   this->processes2 = t;
+   Vector_swap(this->processes, this->processes2);
 
    // Check consistency of the built structures
    assert(Vector_size(this->processes) == vsize); (void)vsize;
