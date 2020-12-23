@@ -245,7 +245,8 @@ void Process_printTime(RichString* str, unsigned long long totalHundredths, bool
       RichString_appendnAscii(str, defColor, buffer, len);
    } else {
       len = xSnprintf(buffer, sizeof(buffer), "%2d:%02d.%02d ", minutes, seconds, hundredths);
-      RichString_appendnAscii(str, defColor, buffer, len);
+      int color = (hundredths == 0 && seconds == 0 && minutes == 0) ? CRT_colors[PROCESS_SHADOW] : defColor;
+      RichString_appendnAscii(str, color, buffer, len);
    }
 }
 
