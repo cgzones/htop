@@ -160,4 +160,10 @@ extern const MeterMode* const Meter_modes[];
 
 extern const MeterClass BlankMeter_class;
 
+#ifndef NDEBUG
+
+extern const MeterClass FilledMeter_class;
+
+#endif /* !NDEBUG */
+
 #endif

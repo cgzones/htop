@@ -252,6 +252,9 @@ const MeterClass* const Platform_meterTypes[] = {
    &SystemdMeter_class,
    &SystemdUserMeter_class,
    &FileDescriptorMeter_class,
+#ifndef NDEBUG
+   &FilledMeter_class,
+#endif /* !NDEBUG */
    NULL
 };
 

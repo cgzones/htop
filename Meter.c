@@ -502,3 +502,34 @@ const MeterClass BlankMeter_class = {
    .uiName = "Blank",
    .caption = ""
 };
+
+#ifndef NDEBUG
+
+/* Filled meter */
+
+static void FilledMeter_updateValues(Meter* this) {
+   memset(this->txtBuffer, 'F', sizeof(this->txtBuffer));
+   this->txtBuffer[sizeof(this->txtBuffer) - 1] = '\0';
+}
+
+static const int FilledMeter_attributes[] = {
+   DEFAULT_COLOR
+};
+
+const MeterClass FilledMeter_class = {
+   .super = {
+      .extends = Class(Meter),
+      .delete = Meter_delete,
+   },
+   .updateValues = FilledMeter_updateValues,
+   .defaultMode = TEXT_METERMODE,
+   .maxItems = 0,
+   .total = 100.0,
+   .attributes = FilledMeter_attributes,
+   .name = "Filled",
+   .description = "Filled Meter for debug purposes",
+   .uiName = "Filled",
+   .caption = "FFF",
+};
+
+#endif /* !NDEBUG */
