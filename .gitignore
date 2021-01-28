@@ -54,3 +54,6 @@ callgrind.out.*
 
 # Language Servers
 /.cache/clangd/
+
+# musl build directory
+/scripts/musl_static_builddir/
