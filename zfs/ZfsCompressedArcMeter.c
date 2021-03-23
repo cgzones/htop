@@ -23,12 +23,12 @@ static const int ZfsCompressedArcMeter_attributes[] = {
 
 void ZfsCompressedArcMeter_readStats(Meter* this, const ZfsArcStats* stats) {
    if ( stats->isCompressed ) {
-      this->total = stats->uncompressed;
-      this->values[0] = stats->compressed;
+      this->total     = (double)stats->uncompressed;
+      this->values[0] = (double)stats->compressed;
    } else {
       // For uncompressed ARC, report 1:1 ratio
-      this->total = stats->size;
-      this->values[0] = stats->size;
+      this->total     = (double)stats->size;
+      this->values[0] = (double)stats->size;
    }
 }
 

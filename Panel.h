@@ -56,14 +56,14 @@ typedef struct PanelClass_ {
 
 struct Panel_ {
    Object super;
-   int x, y, w, h;
+   int x, y;
+   unsigned int h, w;
    Vector* items;
-   int selected;
-   int oldSelected;
-   int selectedLen;
+   size_t selected;
+   size_t oldSelected;
+   size_t selectedLen;
    void* eventHandlerState;
-   int scrollV;
-   short scrollH;
+   size_t scrollH, scrollV;
    bool needsRedraw;
    bool wasFocus;
    FunctionBar* currentBar;
@@ -78,11 +78,11 @@ struct Panel_ {
 
 extern const PanelClass Panel_class;
 
-Panel* Panel_new(int x, int y, int w, int h, const ObjectClass* type, bool owner, FunctionBar* fuBar);
+Panel* Panel_new(int x, int y, unsigned int w, unsigned int h, const ObjectClass* type, bool owner, FunctionBar* fuBar);
 
 void Panel_delete(Object* cast);
 
-void Panel_init(Panel* this, int x, int y, int w, int h, const ObjectClass* type, bool owner, FunctionBar* fuBar);
+void Panel_init(Panel* this, int x, int y, unsigned int w, unsigned int h, const ObjectClass* type, bool owner, FunctionBar* fuBar);
 
 void Panel_done(Panel* this);
 
@@ -98,13 +98,13 @@ void Panel_prune(Panel* this);
 
 void Panel_add(Panel* this, Object* o);
 
-void Panel_insert(Panel* this, int i, Object* o);
+void Panel_insert(Panel* this, size_t i, Object* o);
 
-void Panel_set(Panel* this, int i, Object* o);
+void Panel_set(Panel* this, size_t i, Object* o);
 
-Object* Panel_get(Panel* this, int i);
+Object* Panel_get(Panel* this, size_t i);
 
-Object* Panel_remove(Panel* this, int i);
+Object* Panel_remove(Panel* this, size_t i);
 
 Object* Panel_getSelected(Panel* this);
 
@@ -112,11 +112,11 @@ void Panel_moveSelectedUp(Panel* this);
 
 void Panel_moveSelectedDown(Panel* this);
 
-int Panel_getSelectedIndex(const Panel* this);
+size_t Panel_getSelectedIndex(const Panel* this);
 
-int Panel_size(const Panel* this);
+size_t Panel_size(const Panel* this);
 
-void Panel_setSelected(Panel* this, int selected);
+void Panel_setSelected(Panel* this, size_t selected);
 
 void Panel_draw(Panel* this, bool force_redraw, bool focus, bool highlightSelected, bool hideFunctionBar);
 

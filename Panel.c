@@ -30,7 +30,7 @@ const PanelClass Panel_class = {
    .eventHandler = Panel_selectByTyping,
 };
 
-Panel* Panel_new(int x, int y, int w, int h, const ObjectClass* type, bool owner, FunctionBar* fuBar) {
+Panel* Panel_new(int x, int y, unsigned int w, unsigned int h, const ObjectClass* type, bool owner, FunctionBar* fuBar) {
    Panel* this;
    this = xMalloc(sizeof(Panel));
    Object_setClass(this, Class(Panel));
@@ -44,7 +44,7 @@ void Panel_delete(Object* cast) {
    free(this);
 }
 
-void Panel_init(Panel* this, int x, int y, int w, int h, const ObjectClass* type, bool owner, FunctionBar* fuBar) {
+void Panel_init(Panel* this, int x, int y, unsigned int w, unsigned int h, const ObjectClass* type, bool owner, FunctionBar* fuBar) {
    this->x = x;
    this->y = y;
    this->w = w;
@@ -92,8 +92,8 @@ void Panel_move(Panel* this, int x, int y) {
 void Panel_resize(Panel* this, int w, int h) {
    assert (this != NULL);
 
-   this->w = w;
-   this->h = h;
+   this->w = CAST_UNSIGNED(w);
+   this->h = CAST_UNSIGNED(h);
    this->needsRedraw = true;
 }
 
@@ -114,26 +114,26 @@ void Panel_add(Panel* this, Object* o) {
    this->needsRedraw = true;
 }
 
-void Panel_insert(Panel* this, int i, Object* o) {
+void Panel_insert(Panel* this, size_t i, Object* o) {
    assert (this != NULL);
 
    Vector_insert(this->items, i, o);
    this->needsRedraw = true;
 }
 
-void Panel_set(Panel* this, int i, Object* o) {
+void Panel_set(Panel* this, size_t i, Object* o) {
    assert (this != NULL);
 
    Vector_set(this->items, i, o);
 }
 
-Object* Panel_get(Panel* this, int i) {
+Object* Panel_get(Panel* this, size_t i) {
    assert (this != NULL);
 
    return Vector_get(this->items, i);
 }
 
-Object* Panel_remove(Panel* this, int i) {
+Object* Panel_remove(Panel* this, size_t i) {
    assert (this != NULL);
 
    this->needsRedraw = true;
@@ -172,27 +172,26 @@ void Panel_moveSelectedDown(Panel* this) {
    }
 }
 
-int Panel_getSelectedIndex(const Panel* this) {
+size_t Panel_getSelectedIndex(const Panel* this) {
    assert (this != NULL);
 
    return this->selected;
 }
 
-int Panel_size(const Panel* this) {
+size_t Panel_size(const Panel* this) {
    assert (this != NULL);
 
    return Vector_size(this->items);
 }
 
-void Panel_setSelected(Panel* this, int selected) {
+void Panel_setSelected(Panel* this, size_t selected) {
    assert (this != NULL);
 
-   int size = Vector_size(this->items);
-   if (selected >= size) {
-      selected = size - 1;
-   }
-   if (selected < 0) {
+   size_t size = Vector_size(this->items);
+   if (size == 0) {
       selected = 0;
+   } else if (selected >= size) {
+      selected = size - 1;
    }
    this->selected = selected;
    if (Panel_eventHandlerFn(this)) {
@@ -211,11 +210,11 @@ void Panel_splice(Panel* this, Vector* from) {
 void Panel_draw(Panel* this, bool force_redraw, bool focus, bool highlightSelected, bool hideFunctionBar) {
    assert (this != NULL);
 
-   int size = Vector_size(this->items);
-   int scrollH = this->scrollH;
+   size_t size = Vector_size(this->items);
+   size_t scrollH = this->scrollH;
    int y = this->y;
    int x = this->x;
-   int h = this->h;
+   unsigned int h = this->h;
 
    if (hideFunctionBar)
       h++;
@@ -229,13 +228,13 @@ void Panel_draw(Panel* this, bool force_redraw, bool focus, bool highlightSelect
       else
          RichString_setAttr(&this->header, header_attr);
    }
-   int headerLen = RichString_sizeVal(this->header);
+   size_t headerLen = RichString_sizeVal(this->header);
    if (headerLen > 0) {
       attrset(header_attr);
-      mvhline(y, x, ' ', this->w);
+      mvhline(y, x, ' ', CAST_INT(this->w));
       if (scrollH < headerLen) {
          RichString_printoffnVal(this->header, y, x, scrollH,
-            MINIMUM(headerLen - scrollH, this->w));
+            CAST_INT(MINIMUM(headerLen - scrollH, this->w)));
       }
       attrset(CRT_colors[RESET_COLOR]);
       y++;
@@ -243,11 +242,8 @@ void Panel_draw(Panel* this, bool force_redraw, bool focus, bool highlightSelect
    }
 
    // ensure scroll area is on screen
-   if (this->scrollV < 0) {
-      this->scrollV = 0;
-      this->needsRedraw = true;
-   } else if (this->scrollV > size - h) {
-      this->scrollV = MAXIMUM(size - h, 0);
+   if (this->scrollV + h > size) {
+      this->scrollV = (size > h) ? (size - h) : 0;
       this->needsRedraw = true;
    }
    // ensure selection is on screen
@@ -259,21 +255,21 @@ void Panel_draw(Panel* this, bool force_redraw, bool focus, bool highlightSelect
       this->needsRedraw = true;
    }
 
-   int first = this->scrollV;
-   int upTo = MINIMUM(first + h, size);
+   const size_t first = this->scrollV;
+   const size_t upTo = MINIMUM(first + h, size);
 
-   int selectionColor = focus
-                      ? CRT_colors[this->selectionColorId]
-                      : CRT_colors[PANEL_SELECTION_UNFOCUS];
+   const int selectionColor = focus
+                            ? CRT_colors[this->selectionColorId]
+                            : CRT_colors[PANEL_SELECTION_UNFOCUS];
 
    if (this->needsRedraw || force_redraw) {
-      int line = 0;
-      for (int i = first; line < h && i < upTo; i++) {
+      size_t line = 0;
+      for (size_t i = first; line < h && i < upTo; i++) {
          const Object* itemObj = Vector_get(this->items, i);
          RichString_begin(item);
          Object_display(itemObj, &item);
-         int itemLen = RichString_sizeVal(item);
-         int amt = MINIMUM(itemLen - scrollH, this->w);
+         size_t itemLen = RichString_sizeVal(item);
+         size_t amt = MINIMUM(itemLen - scrollH, this->w);
          if (highlightSelected && i == this->selected) {
             item.highlightAttr = selectionColor;
          }
@@ -282,16 +278,16 @@ void Panel_draw(Panel* this, bool force_redraw, bool focus, bool highlightSelect
             RichString_setAttr(&item, item.highlightAttr);
             this->selectedLen = itemLen;
          }
-         mvhline(y + line, x, ' ', this->w);
+         mvhline(y + CAST_INT(line), x, ' ', CAST_INT(this->w));
          if (amt > 0)
-            RichString_printoffnVal(item, y + line, x, scrollH, amt);
+            RichString_printoffnVal(item, y + CAST_INT(line), x, scrollH, CAST_INT(amt));
          if (item.highlightAttr)
             attrset(CRT_colors[RESET_COLOR]);
          RichString_delete(&item);
          line++;
       }
       while (line < h) {
-         mvhline(y + line, x, ' ', this->w);
+         mvhline(y + CAST_INT(line), x, ' ', CAST_INT(this->w));
          line++;
       }
 
@@ -299,22 +295,22 @@ void Panel_draw(Panel* this, bool force_redraw, bool focus, bool highlightSelect
       const Object* oldObj = Vector_get(this->items, this->oldSelected);
       RichString_begin(old);
       Object_display(oldObj, &old);
-      int oldLen = RichString_sizeVal(old);
+      size_t oldLen = RichString_sizeVal(old);
       const Object* newObj = Vector_get(this->items, this->selected);
       RichString_begin(new);
       Object_display(newObj, &new);
-      int newLen = RichString_sizeVal(new);
+      size_t newLen = RichString_sizeVal(new);
       this->selectedLen = newLen;
-      mvhline(y + this->oldSelected - first, x + 0, ' ', this->w);
+      mvhline(y + CAST_INT(this->oldSelected - first), x, ' ', CAST_INT(this->w));
       if (scrollH < oldLen)
-         RichString_printoffnVal(old, y + this->oldSelected - first, x,
-            scrollH, MINIMUM(oldLen - scrollH, this->w));
+         RichString_printoffnVal(old, y + CAST_INT(this->oldSelected - first), x,
+            scrollH, CAST_INT(MINIMUM(oldLen - scrollH, this->w)));
       attrset(selectionColor);
-      mvhline(y + this->selected - first, x + 0, ' ', this->w);
+      mvhline(y + CAST_INT(this->selected - first), x, ' ', CAST_INT(this->w));
       RichString_setAttr(&new, selectionColor);
       if (scrollH < newLen)
-         RichString_printoffnVal(new, y + this->selected - first, x,
-            scrollH, MINIMUM(newLen - scrollH, this->w));
+         RichString_printoffnVal(new, y + CAST_INT(this->selected - first), x,
+            scrollH, CAST_INT(MINIMUM(newLen - scrollH, this->w)));
       attrset(CRT_colors[RESET_COLOR]);
       RichString_delete(&new);
       RichString_delete(&old);
@@ -333,20 +329,28 @@ void Panel_draw(Panel* this, bool force_redraw, bool focus, bool highlightSelect
    move(0, 0);
 }
 
-static int Panel_headerHeight(const Panel* this) {
+static unsigned int Panel_headerHeight(const Panel* this) {
    return RichString_sizeVal(this->header) > 0 ? 1 : 0;
 }
 
 bool Panel_onKey(Panel* this, int key) {
    assert (this != NULL);
 
-   const int size = Vector_size(this->items);
+   const size_t size = Vector_size(this->items);
 
-   #define PANEL_SCROLL(amount)                                                                                     \
-   do {                                                                                                             \
-      this->selected += (amount);                                                                                   \
-      this->scrollV = CLAMP(this->scrollV + (amount), 0, MAXIMUM(0, (size - this->h - Panel_headerHeight(this))));  \
-      this->needsRedraw = true;                                                                                     \
+   #define PANEL_SCROLLDOWN(amount_)                                                                                 \
+   do {                                                                                                              \
+      this->selected = this->selected + (amount_);                                                                   \
+      this->scrollV = MINIMUM(this->scrollV + (amount_), (size > this->h + Panel_headerHeight(this)) ? (size - this->h - Panel_headerHeight(this)) : 0);  \
+      this->needsRedraw = true;                                                                                      \
+   } while (0)
+
+   #define PANEL_SCROLLUP(amount_)                                                            \
+   do {                                                                                       \
+      this->selected = (this->selected > (amount_)) ? (this->selected - (amount_)) : 0;       \
+      this->scrollV = MINIMUM((this->scrollV > (amount_)) ? (this->scrollV - (amount_)) : 0,  \
+                              (size > this->h + Panel_headerHeight(this)) ? (size - this->h - Panel_headerHeight(this)) : 0);  \
+      this->needsRedraw = true;                                                               \
    } while (0)
 
    switch (key) {
@@ -363,7 +367,8 @@ bool Panel_onKey(Panel* this, int key) {
    #ifdef KEY_C_UP
    case KEY_C_UP:
    #endif
-      this->selected--;
+      if (this->selected > 0)
+         this->selected--;
       break;
 
    case KEY_LEFT:
@@ -381,19 +386,19 @@ bool Panel_onKey(Panel* this, int key) {
       break;
 
    case KEY_PPAGE:
-      PANEL_SCROLL(-(this->h - Panel_headerHeight(this)));
+      PANEL_SCROLLUP(this->h - Panel_headerHeight(this));
       break;
 
    case KEY_NPAGE:
-      PANEL_SCROLL(+(this->h - Panel_headerHeight(this)));
+      PANEL_SCROLLDOWN(this->h - Panel_headerHeight(this));
       break;
 
    case KEY_WHEELUP:
-      PANEL_SCROLL(-CRT_scrollWheelVAmount);
+      PANEL_SCROLLUP(CRT_scrollWheelVAmount);
       break;
 
    case KEY_WHEELDOWN:
-      PANEL_SCROLL(+CRT_scrollWheelVAmount);
+      PANEL_SCROLLDOWN(CRT_scrollWheelVAmount);
       break;
 
    case KEY_HOME:
@@ -401,7 +406,7 @@ bool Panel_onKey(Panel* this, int key) {
       break;
 
    case KEY_END:
-      this->selected = size - 1;
+      this->selected = (size > 0) ? (size - 1) : 0;
       break;
 
    case KEY_CTRL('A'):
@@ -418,10 +423,11 @@ bool Panel_onKey(Panel* this, int key) {
       return false;
    }
 
-   #undef PANEL_SCROLL
+   #undef PANEL_SCROLLDOWN
+   #undef PANEL_SCROLLUP
 
    // ensure selection within bounds
-   if (this->selected < 0 || size == 0) {
+   if (size == 0) {
       this->selected = 0;
       this->needsRedraw = true;
    } else if (this->selected >= size) {
@@ -434,14 +440,14 @@ bool Panel_onKey(Panel* this, int key) {
 
 
 HandlerResult Panel_selectByTyping(Panel* this, int ch) {
-   int size = Panel_size(this);
+   size_t size = Panel_size(this);
 
    if (!this->eventHandlerState)
       this->eventHandlerState = xCalloc(100, sizeof(char));
    char* buffer = this->eventHandlerState;
 
    if (0 < ch && ch < 255 && isgraph((unsigned char)ch)) {
-      int len = strlen(buffer);
+      size_t len = strlen(buffer);
       if (!len) {
          if ('/' == ch) {
             ch = '\001';
@@ -453,13 +459,13 @@ HandlerResult Panel_selectByTyping(Panel* this, int ch) {
       }
 
       if (len < 99) {
-         buffer[len] = ch;
+         buffer[len] = (char)ch;
          buffer[len+1] = '\0';
       }
 
       for (int try = 0; try < 2; try++) {
          len = strlen(buffer);
-         for (int i = 0; i < size; i++) {
+         for (size_t i = 0; i < size; i++) {
             const char* cur = ((ListItem*) Panel_get(this, i))->value;
             while (*cur == ' ') cur++;
             if (strncasecmp(cur, buffer, len) == 0) {
@@ -470,7 +476,7 @@ HandlerResult Panel_selectByTyping(Panel* this, int ch) {
 
          // if current word did not match,
          // retry considering the character the start of a new word.
-         buffer[0] = ch;
+         buffer[0] = (char)ch;
          buffer[1] = '\0';
       }
 

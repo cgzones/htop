@@ -122,7 +122,7 @@ const unsigned int Platform_numberOfSignals = ARRAYSIZE(Platform_signals);
 
 static enum { BAT_PROC, BAT_SYS, BAT_ERR } Platform_Battery_method = BAT_PROC;
 static time_t Platform_Battery_cacheTime;
-static double Platform_Battery_cachePercent = NAN;
+static double Platform_Battery_cachePercent = DNAN;
 static ACPresence Platform_Battery_cacheIsOnAC;
 
 #ifdef HAVE_LIBCAP
@@ -208,7 +208,8 @@ int Platform_getUptime() {
          return 0;
       }
    }
-   return floor(uptime);
+   double f = floor(uptime);
+   return (int)f;
 }
 
 void Platform_getLoadAverage(double* one, double* five, double* fifteen) {
@@ -228,9 +229,9 @@ void Platform_getLoadAverage(double* one, double* five, double* fifteen) {
    return;
 
   err:
-   *one = NAN;
-   *five = NAN;
-   *fifteen = NAN;
+   *one = DNAN;
+   *five = DNAN;
+   *fifteen = DNAN;
 }
 
 int Platform_getMaxPid() {
@@ -251,15 +252,15 @@ double Platform_setCPUValues(Meter* this, unsigned int cpu) {
    double total = (double) ( cpuData->totalPeriod == 0 ? 1 : cpuData->totalPeriod);
    double percent;
    double* v = this->values;
-   v[CPU_METER_NICE] = cpuData->nicePeriod / total * 100.0;
-   v[CPU_METER_NORMAL] = cpuData->userPeriod / total * 100.0;
+   v[CPU_METER_NICE] = (double)cpuData->nicePeriod / total * 100.0;
+   v[CPU_METER_NORMAL] = (double)cpuData->userPeriod / total * 100.0;
    if (this->pl->settings->detailedCPUTime) {
-      v[CPU_METER_KERNEL]  = cpuData->systemPeriod / total * 100.0;
-      v[CPU_METER_IRQ]     = cpuData->irqPeriod / total * 100.0;
-      v[CPU_METER_SOFTIRQ] = cpuData->softIrqPeriod / total * 100.0;
-      v[CPU_METER_STEAL]   = cpuData->stealPeriod / total * 100.0;
-      v[CPU_METER_GUEST]   = cpuData->guestPeriod / total * 100.0;
-      v[CPU_METER_IOWAIT]  = cpuData->ioWaitPeriod / total * 100.0;
+      v[CPU_METER_KERNEL]  = (double)cpuData->systemPeriod / total * 100.0;
+      v[CPU_METER_IRQ]     = (double)cpuData->irqPeriod / total * 100.0;
+      v[CPU_METER_SOFTIRQ] = (double)cpuData->softIrqPeriod / total * 100.0;
+      v[CPU_METER_STEAL]   = (double)cpuData->stealPeriod / total * 100.0;
+      v[CPU_METER_GUEST]   = (double)cpuData->guestPeriod / total * 100.0;
+      v[CPU_METER_IOWAIT]  = (double)cpuData->ioWaitPeriod / total * 100.0;
       this->curItems = 8;
       if (this->pl->settings->accountGuestInCPUMeter) {
          percent = v[0] + v[1] + v[2] + v[3] + v[4] + v[5] + v[6];
@@ -267,8 +268,8 @@ double Platform_setCPUValues(Meter* this, unsigned int cpu) {
          percent = v[0] + v[1] + v[2] + v[3] + v[4];
       }
    } else {
-      v[2] = cpuData->systemAllPeriod / total * 100.0;
-      v[3] = (cpuData->stealPeriod + cpuData->guestPeriod) / total * 100.0;
+      v[2] = (double)cpuData->systemAllPeriod / total * 100.0;
+      v[3] = (double)(cpuData->stealPeriod + cpuData->guestPeriod) / total * 100.0;
       this->curItems = 4;
       percent = v[0] + v[1] + v[2] + v[3];
    }
@@ -277,12 +278,12 @@ double Platform_setCPUValues(Meter* this, unsigned int cpu) {
       percent = 0.0;
    }
 
-   v[CPU_METER_FREQUENCY] = cpuData->frequency;
+   v[CPU_METER_FREQUENCY] = (double)cpuData->frequency;
 
 #ifdef HAVE_SENSORS_SENSORS_H
-   v[CPU_METER_TEMPERATURE] = cpuData->temperature;
+   v[CPU_METER_TEMPERATURE] = (double)cpuData->temperature;
 #else
-   v[CPU_METER_TEMPERATURE] = NAN;
+   v[CPU_METER_TEMPERATURE] = DNAN;
 #endif
 
    return percent;
@@ -292,31 +293,31 @@ void Platform_setMemoryValues(Meter* this) {
    const ProcessList* pl = this->pl;
    const LinuxProcessList* lpl = (const LinuxProcessList*) pl;
 
-   this->total     = pl->totalMem > lpl->totalHugePageMem ? pl->totalMem - lpl->totalHugePageMem : pl->totalMem;
-   this->values[0] = pl->usedMem > lpl->totalHugePageMem ? pl->usedMem - lpl->totalHugePageMem : pl->usedMem;
-   this->values[1] = pl->buffersMem;
-   this->values[2] = pl->sharedMem;
-   this->values[3] = pl->cachedMem;
-   this->values[4] = pl->availableMem;
+   this->total     = (double)(pl->totalMem > lpl->totalHugePageMem ? pl->totalMem - lpl->totalHugePageMem : pl->totalMem);
+   this->values[0] = (double)(pl->usedMem > lpl->totalHugePageMem ? pl->usedMem - lpl->totalHugePageMem : pl->usedMem);
+   this->values[1] = (double)pl->buffersMem;
+   this->values[2] = (double)pl->sharedMem;
+   this->values[3] = (double)pl->cachedMem;
+   this->values[4] = (double)pl->availableMem;
 
    if (lpl->zfs.enabled != 0) {
-      this->values[0] -= lpl->zfs.size;
-      this->values[3] += lpl->zfs.size;
+      this->values[0] -= (double)lpl->zfs.size;
+      this->values[3] += (double)lpl->zfs.size;
    }
 }
 
 void Platform_setSwapValues(Meter* this) {
    const ProcessList* pl = this->pl;
-   this->total = pl->totalSwap;
-   this->values[0] = pl->usedSwap;
-   this->values[1] = pl->cachedSwap;
+   this->total     = (double)pl->totalSwap;
+   this->values[0] = (double)pl->usedSwap;
+   this->values[1] = (double)pl->cachedSwap;
 }
 
 void Platform_setZramValues(Meter* this) {
    const LinuxProcessList* lpl = (const LinuxProcessList*) this->pl;
-   this->total = lpl->zram.totalZram;
-   this->values[0] = lpl->zram.usedZramComp;
-   this->values[1] = lpl->zram.usedZramOrig;
+   this->total     = (double)lpl->zram.totalZram;
+   this->values[0] = (double)lpl->zram.usedZramComp;
+   this->values[1] = (double)lpl->zram.usedZramOrig;
 }
 
 void Platform_setZfsArcValues(Meter* this) {
@@ -342,17 +343,18 @@ char* Platform_getProcessEnv(pid_t pid) {
 
    size_t capacity = 0;
    size_t size = 0;
-   ssize_t bytes = 0;
+   size_t bytes = 0;
+   int error = 0;
 
    do {
       size += bytes;
       capacity += 4096;
       env = xRealloc(env, capacity);
-   } while ((bytes = fread(env + size, 1, capacity - size, fd)) > 0);
-
+   } while ((bytes = fread(env + size, 1, capacity - size, fd)) > 0 && (error = ferror(fd)) == 0);
+   // TODO: test
    fclose(fd);
 
-   if (bytes < 0) {
+   if (bytes == 0 || error) {
       free(env);
       return NULL;
    }
@@ -487,7 +489,7 @@ void Platform_getPressureStall(const char* file, bool some, double* ten, double*
    xSnprintf(procname, sizeof(procname), PROCDIR "/pressure/%s", file);
    FILE* fd = fopen(procname, "r");
    if (!fd) {
-      *ten = *sixty = *threehundred = NAN;
+      *ten = *sixty = *threehundred = DNAN;
       return;
    }
    int total = fscanf(fd, "some avg10=%32lf avg60=%32lf avg300=%32lf total=%*f ", ten, sixty, threehundred);
@@ -634,7 +636,7 @@ static unsigned long int parseBatInfo(const char* fileName, const unsigned short
          break;
 
       char* foundNumStr = String_getToken(line, wordNum);
-      const unsigned long int foundNum = atoi(foundNumStr);
+      const unsigned long int foundNum = strtoul(foundNumStr, NULL, 10);
       free(foundNumStr);
       free(line);
 
@@ -698,18 +700,18 @@ static ACPresence procAcpiCheck(void) {
 static double Platform_Battery_getProcBatInfo(void) {
    const unsigned long int totalFull = parseBatInfo("info", 3, 4);
    if (totalFull == 0)
-      return NAN;
+      return DNAN;
 
    const unsigned long int totalRemain = parseBatInfo("state", 5, 3);
    if (totalRemain == 0)
-      return NAN;
+      return DNAN;
 
-   return totalRemain * 100.0 / (double) totalFull;
+   return (double)totalRemain * 100.0 / (double)totalFull;
 }
 
 static void Platform_Battery_getProcData(double* percent, ACPresence* isOnAC) {
    *isOnAC = procAcpiCheck();
-   *percent = AC_ERROR != *isOnAC ? Platform_Battery_getProcBatInfo() : NAN;
+   *percent = AC_ERROR != *isOnAC ? Platform_Battery_getProcBatInfo() : DNAN;
 }
 
 // ----------------------------------------
@@ -718,7 +720,7 @@ static void Platform_Battery_getProcData(double* percent, ACPresence* isOnAC) {
 
 static void Platform_Battery_getSysData(double* percent, ACPresence* isOnAC) {
 
-   *percent = NAN;
+   *percent = DNAN;
    *isOnAC = AC_ERROR;
 
    DIR* dir = opendir(SYS_POWERSUPPLY_DIR);
@@ -757,8 +759,8 @@ static void Platform_Battery_getSysData(double* percent, ACPresence* isOnAC) {
          const char* line;
          bool full = false;
          bool now = false;
-         int fullSize = 0;
-         double capacityLevel = NAN;
+         unsigned int fullSize = 0;
+         int capacityLevel = -1;
 
          #define match(str,prefix) \
             (String_startsWith(str,prefix) ? (str) + strlen(prefix) : NULL)
@@ -769,7 +771,7 @@ static void Platform_Battery_getSysData(double* percent, ACPresence* isOnAC) {
                continue;
             const char* capacity = match(ps, "CAPACITY=");
             if (capacity)
-               capacityLevel = atoi(capacity) / 100.0;
+               capacityLevel = atoi(capacity);
             const char* energy = match(ps, "ENERGY_");
             if (!energy)
                energy = match(ps, "CHARGE_");
@@ -777,7 +779,7 @@ static void Platform_Battery_getSysData(double* percent, ACPresence* isOnAC) {
                continue;
             const char* value = (!full) ? match(energy, "FULL=") : NULL;
             if (value) {
-               fullSize = atoi(value);
+               fullSize = CAST_UNSIGNED(atoi(value));
                totalFull += fullSize;
                full = true;
                if (now)
@@ -786,7 +788,7 @@ static void Platform_Battery_getSysData(double* percent, ACPresence* isOnAC) {
             }
             value = (!now) ? match(energy, "NOW=") : NULL;
             if (value) {
-               totalRemain += atoi(value);
+               totalRemain += strtoul(value, NULL, 10);
                now = true;
                if (full)
                   break;
@@ -796,8 +798,8 @@ static void Platform_Battery_getSysData(double* percent, ACPresence* isOnAC) {
 
          #undef match
 
-         if (!now && full && !isnan(capacityLevel))
-            totalRemain += (capacityLevel * fullSize);
+         if (!now && full && capacityLevel != -1)
+            totalRemain += CAST_UNSIGNED(capacityLevel) * fullSize / 100;
 
       } else if (entryName[0] == 'A') {
          if (*isOnAC != AC_ERROR)
@@ -821,7 +823,7 @@ static void Platform_Battery_getSysData(double* percent, ACPresence* isOnAC) {
    }
    closedir(dir);
 
-   *percent = totalFull > 0 ? ((double) totalRemain * 100.0) / (double) totalFull : NAN;
+   *percent = totalFull > 0 ? ((double) totalRemain * 100.0) / (double) totalFull : DNAN;
 }
 
 void Platform_getBattery(double* percent, ACPresence* isOnAC) {
@@ -844,7 +846,7 @@ void Platform_getBattery(double* percent, ACPresence* isOnAC) {
          Platform_Battery_method = BAT_ERR;
    }
    if (Platform_Battery_method == BAT_ERR) {
-      *percent = NAN;
+      *percent = DNAN;
       *isOnAC = AC_ERROR;
    } else {
       *percent = CLAMP(*percent, 0.0, 100.0);

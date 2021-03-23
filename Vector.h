@@ -13,19 +13,20 @@ in the source distribution for its full text.
 
 
 #ifndef DEFAULT_SIZE
-#define DEFAULT_SIZE (-1)
+#define DEFAULT_SIZE 10
 #endif
+
 
 typedef struct Vector_ {
    Object** array;
    const ObjectClass* type;
-   int arraySize;
-   int growthRate;
-   int items;
+   size_t arraySize;
+   size_t growthRate;
+   size_t items;
    bool owner;
 } Vector;
 
-Vector* Vector_new(const ObjectClass* type, bool owner, int size);
+Vector* Vector_new(const ObjectClass* type, bool owner, size_t size);
 
 void Vector_delete(Vector* this);
 
@@ -38,31 +39,31 @@ static inline void Vector_quickSort(Vector* this) {
 
 void Vector_insertionSort(Vector* this);
 
-void Vector_insert(Vector* this, int idx, void* data_);
+void Vector_insert(Vector* this, size_t idx, void* data_);
 
-Object* Vector_take(Vector* this, int idx);
+Object* Vector_take(Vector* this, size_t idx);
 
-Object* Vector_remove(Vector* this, int idx);
+Object* Vector_remove(Vector* this, size_t idx);
 
-void Vector_moveUp(Vector* this, int idx);
+void Vector_moveUp(Vector* this, size_t idx);
 
-void Vector_moveDown(Vector* this, int idx);
+void Vector_moveDown(Vector* this, size_t idx);
 
-void Vector_set(Vector* this, int idx, void* data_);
+void Vector_set(Vector* this, size_t idx, void* data_);
 
 #ifndef NDEBUG
 
-Object* Vector_get(const Vector* this, int idx);
-int Vector_size(const Vector* this);
-unsigned int Vector_count(const Vector* this);
+Object* Vector_get(const Vector* this, size_t idx);
+size_t Vector_size(const Vector* this);
+size_t Vector_count(const Vector* this);
 
 #else /* NDEBUG */
 
-static inline Object* Vector_get(const Vector* this, int idx) {
+static inline Object* Vector_get(const Vector* this, size_t idx) {
    return this->array[idx];
 }
 
-static inline int Vector_size(const Vector* this) {
+static inline size_t Vector_size(const Vector* this) {
    return this->items;
 }
 
@@ -74,7 +75,7 @@ static inline const ObjectClass* Vector_type(const Vector* this) {
 
 void Vector_add(Vector* this, void* data_);
 
-int Vector_indexOf(const Vector* this, const void* search_, Object_Compare compare);
+ssize_t Vector_indexOf(const Vector* this, const void* search_, Object_Compare compare);
 
 void Vector_splice(Vector* this, Vector* from);
 

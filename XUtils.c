@@ -205,7 +205,7 @@ size_t String_safeStrncpy(char *restrict dest, const char *restrict src, size_t 
    return i;
 }
 
-int xAsprintf(char** strp, const char* fmt, ...) {
+unsigned int xAsprintf(char** strp, const char* fmt, ...) {
    va_list vl;
    va_start(vl, fmt);
    int r = vasprintf(strp, fmt, vl);
@@ -215,10 +215,10 @@ int xAsprintf(char** strp, const char* fmt, ...) {
       fail();
    }
 
-   return r;
+   return (unsigned int)r;
 }
 
-int xSnprintf(char* buf, size_t len, const char* fmt, ...) {
+unsigned int xSnprintf(char* buf, size_t len, const char* fmt, ...) {
    va_list vl;
    va_start(vl, fmt);
    int n = vsnprintf(buf, len, fmt, vl);
@@ -228,7 +228,7 @@ int xSnprintf(char* buf, size_t len, const char* fmt, ...) {
       fail();
    }
 
-   return n;
+   return (unsigned int)n;
 }
 
 char* xStrdup(const char* str) {

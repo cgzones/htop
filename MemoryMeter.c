@@ -28,8 +28,8 @@ static void MemoryMeter_updateValues(Meter* this) {
    int written;
 
    /* shared and available memory are not supported on all platforms */
-   this->values[2] = NAN;
-   this->values[4] = NAN;
+   this->values[2] = DNAN;
+   this->values[4] = DNAN;
    Platform_setMemoryValues(this);
 
    /* Do not print available memory in bar mode */

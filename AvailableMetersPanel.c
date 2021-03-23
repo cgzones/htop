@@ -30,7 +30,7 @@ static void AvailableMetersPanel_delete(Object* object) {
    free(this);
 }
 
-static inline void AvailableMetersPanel_addMeter(Header* header, Panel* panel, const MeterClass* type, unsigned int param, int column) {
+static inline void AvailableMetersPanel_addMeter(Header* header, Panel* panel, const MeterClass* type, unsigned int param, unsigned int column) {
    const Meter* meter = Header_addMeterByClass(header, type, param, column);
    Panel_add(panel, (Object*) Meter_toListItem(meter, false));
    Panel_setSelected(panel, Panel_size(panel) - 1);
@@ -78,7 +78,7 @@ static HandlerResult AvailableMetersPanel_eventHandler(Panel* super, int ch) {
       Header_calculateHeight(header);
       Header_updateData(header);
       Header_draw(header);
-      ScreenManager_resize(this->scr, this->scr->x1, header->height, this->scr->x2, this->scr->y2);
+      ScreenManager_resize(this->scr, this->scr->x1, CAST_INT(header->height), this->scr->x2, this->scr->y2);
    }
    return result;
 }
@@ -120,7 +120,7 @@ AvailableMetersPanel* AvailableMetersPanel_new(Settings* settings, Header* heade
       for (unsigned int i = 1; i <= cpus; i++) {
          char buffer[50];
          xSnprintf(buffer, sizeof(buffer), "%s %d", type->uiName, Settings_cpuId(this->settings, i - 1));
-         Panel_add(super, (Object*) ListItem_new(buffer, i));
+         Panel_add(super, (Object*) ListItem_new(buffer, CAST_INT(i)));
       }
    } else {
       Panel_add(super, (Object*) ListItem_new("CPU", 1));

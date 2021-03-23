@@ -25,7 +25,7 @@ ScreenManager* ScreenManager_new(Header* header, const Settings* settings, const
    ScreenManager* this;
    this = xMalloc(sizeof(ScreenManager));
    this->x1 = 0;
-   this->y1 = header->height;
+   this->y1 = CAST_INT(header->height);
    this->x2 = 0;
    this->y2 = -1;
    this->panels = Vector_new(Class(Panel), owner, DEFAULT_SIZE);
@@ -43,7 +43,7 @@ void ScreenManager_delete(ScreenManager* this) {
    free(this);
 }
 
-inline int ScreenManager_size(const ScreenManager* this) {
+inline size_t ScreenManager_size(const ScreenManager* this) {
    return this->panelCount;
 }
 
@@ -51,7 +51,7 @@ void ScreenManager_add(ScreenManager* this, Panel* item, int size) {
    int lastX = 0;
    if (this->panelCount > 0) {
       const Panel* last = (const Panel*) Vector_get(this->panels, this->panelCount - 1);
-      lastX = last->x + last->w + 1;
+      lastX = last->x + CAST_INT(last->w) + 1;
    }
    int height = LINES - this->y1 + this->y2;
    if (size > 0) {
@@ -65,7 +65,7 @@ void ScreenManager_add(ScreenManager* this, Panel* item, int size) {
    this->panelCount++;
 }
 
-Panel* ScreenManager_remove(ScreenManager* this, int idx) {
+Panel* ScreenManager_remove(ScreenManager* this, size_t idx) {
    assert(this->panelCount > idx);
    Panel* panel = (Panel*) Vector_remove(this->panels, idx);
    this->panelCount--;
@@ -77,13 +77,13 @@ void ScreenManager_resize(ScreenManager* this, int x1, int y1, int x2, int y2) {
    this->y1 = y1;
    this->x2 = x2;
    this->y2 = y2;
-   int panels = this->panelCount;
+   size_t panels = this->panelCount;
    int lastX = 0;
-   for (int i = 0; i < panels - 1; i++) {
+   for (size_t i = 0; i < panels - 1; i++) {
       Panel* panel = (Panel*) Vector_get(this->panels, i);
-      Panel_resize(panel, panel->w, LINES - y1 + y2);
+      Panel_resize(panel, CAST_INT(panel->w), LINES - y1 + y2);
       Panel_move(panel, lastX, y1);
-      lastX = panel->x + panel->w + 1;
+      lastX = panel->x + CAST_INT(panel->w) + 1;
    }
    Panel* panel = (Panel*) Vector_get(this->panels, panels - 1);
    Panel_resize(panel, COLS - x1 + x2 - lastX, LINES - y1 + y2);
@@ -122,22 +122,22 @@ static void checkRecalculation(ScreenManager* this, double* oldTime, int* sortTi
    *rescan = false;
 }
 
-static void ScreenManager_drawPanels(ScreenManager* this, int focus, bool force_redraw) {
-   const int nPanels = this->panelCount;
-   for (int i = 0; i < nPanels; i++) {
+static void ScreenManager_drawPanels(ScreenManager* this, size_t focus, bool force_redraw) {
+   const size_t nPanels = this->panelCount;
+   for (size_t i = 0; i < nPanels; i++) {
       Panel* panel = (Panel*) Vector_get(this->panels, i);
       Panel_draw(panel,
                  force_redraw,
                  i == focus,
                  panel != (Panel*)this->state->mainPanel || !this->state->hideProcessSelection,
                  State_hideFunctionBar(this->state));
-      mvvline(panel->y, panel->x + panel->w, ' ', panel->h + (State_hideFunctionBar(this->state) ? 1 : 0));
+      mvvline(panel->y, panel->x + CAST_INT(panel->w), ' ', CAST_INT(panel->h) + (State_hideFunctionBar(this->state) ? 1 : 0));
    }
 }
 
 void ScreenManager_run(ScreenManager* this, Panel** lastFocus, int* lastKey) {
    bool quit = false;
-   int focus = 0;
+   size_t focus = 0;
 
    Panel* panelFocus = (Panel*) Vector_get(this->panels, focus);
 
@@ -177,19 +177,19 @@ void ScreenManager_run(ScreenManager* this, Panel** lastFocus, int* lastKey) {
                if (mevent.y == LINES - 1) {
                   ch = FunctionBar_synthesizeEvent(panelFocus->currentBar, mevent.x);
                } else {
-                  for (int i = 0; i < this->panelCount; i++) {
+                  for (size_t i = 0; i < this->panelCount; i++) {
                      Panel* panel = (Panel*) Vector_get(this->panels, i);
-                     if (mevent.x >= panel->x && mevent.x <= panel->x + panel->w) {
+                     if (mevent.x >= panel->x && mevent.x <= panel->x + CAST_INT(panel->w)) {
                         if (mevent.y == panel->y) {
                            ch = EVENT_HEADER_CLICK(mevent.x - panel->x);
                            break;
-                        } else if (mevent.y > panel->y && mevent.y <= panel->y + panel->h) {
+                        } else if (mevent.y > panel->y && mevent.y <= panel->y + CAST_INT(panel->h)) {
                            ch = KEY_MOUSE;
                            if (panel == panelFocus || this->allowFocusChange) {
                               focus = i;
                               panelFocus = panel;
                               const Object* oldSelection = Panel_getSelected(panel);
-                              Panel_setSelected(panel, mevent.y - panel->y + panel->scrollV - 1);
+                              Panel_setSelected(panel, CAST_SIZET(mevent.y - panel->y) + panel->scrollV - 1);
                               if (Panel_getSelected(panel) == oldSelection) {
                                  ch = KEY_RECLICK;
                               }
@@ -233,7 +233,7 @@ void ScreenManager_run(ScreenManager* this, Panel** lastFocus, int* lastKey) {
          result = Panel_eventHandler(panelFocus, ch);
       }
       if (result & SYNTH_KEY) {
-         ch = result >> 16;
+         ch = (int)result >> 16;
       }
       if (result & REFRESH) {
          sortTimeout = 0;

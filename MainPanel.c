@@ -31,8 +31,8 @@ void MainPanel_updateTreeFunctions(MainPanel* this, bool mode) {
 
 static void MainPanel_pidSearch(MainPanel* this, int ch) {
    Panel* super = (Panel*) this;
-   pid_t pid = ch - 48 + this->pidSearch;
-   for (int i = 0; i < Panel_size(super); i++) {
+   pid_t pid = ch - '0' + this->pidSearch;
+   for (size_t i = 0; i < Panel_size(super); i++) {
       const Process* p = (const Process*) Panel_get(super, i);
       if (p && p->pid == pid) {
          Panel_setSelected(super, i);
@@ -45,7 +45,7 @@ static void MainPanel_pidSearch(MainPanel* this, int ch) {
    }
 }
 
-static const char* MainPanel_getValue(Panel* this, int i) {
+static const char* MainPanel_getValue(Panel* this, size_t i) {
    const Process* p = (const Process*) Panel_get(this, i);
    return Process_getCommand(p);
 }
@@ -66,10 +66,10 @@ static HandlerResult MainPanel_eventHandler(Panel* super, int ch) {
       this->state->hideProcessSelection = false;
 
    if (EVENT_IS_HEADER_CLICK(ch)) {
-      int x = EVENT_HEADER_CLICK_GET_X(ch);
+      unsigned int x = CAST_UNSIGNED(EVENT_HEADER_CLICK_GET_X(ch));
       const ProcessList* pl = this->state->pl;
       Settings* settings = this->state->settings;
-      int hx = super->scrollH + x + 1;
+      size_t hx = super->scrollH + x + 1;
       ProcessField field = ProcessList_keyAt(pl, hx);
       if (settings->treeView && settings->treeViewAlwaysByPID) {
          settings->treeView = false;
@@ -146,7 +146,7 @@ bool MainPanel_foreachProcess(MainPanel* this, MainPanel_ForeachProcessFn fn, Ar
    Panel* super = (Panel*) this;
    bool ok = true;
    bool anyTagged = false;
-   for (int i = 0; i < Panel_size(super); i++) {
+   for (size_t i = 0; i < Panel_size(super); i++) {
       Process* p = (Process*) Panel_get(super, i);
       if (p->tag) {
          ok = fn(p, arg) && ok;

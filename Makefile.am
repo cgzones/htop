@@ -99,6 +99,7 @@ myhtopheaders = \
 	Hashtable.h \
 	Header.h \
 	HostnameMeter.h \
+	htop.h \
 	IncSet.h \
 	InfoScreen.h \
 	ListItem.h \

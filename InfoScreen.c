@@ -26,7 +26,7 @@ InfoScreen* InfoScreen_init(InfoScreen* this, const Process* process, FunctionBa
    if (!bar) {
       bar = FunctionBar_new(InfoScreenFunctions, InfoScreenKeys, InfoScreenEvents);
    }
-   this->display = Panel_new(0, 1, COLS, height, Class(ListItem), false, bar);
+   this->display = Panel_new(0, 1, CAST_UNSIGNED(COLS), CAST_UNSIGNED(height), Class(ListItem), false, bar);
    this->inc = IncSet_new(bar);
    this->lines = Vector_new(Vector_type(this->display->items), true, DEFAULT_SIZE);
    Panel_setHeader(this->display, panelHeader);
@@ -111,7 +111,7 @@ void InfoScreen_run(InfoScreen* this) {
          if (ok == OK) {
             if (mevent.bstate & BUTTON1_RELEASED) {
                if (mevent.y >= panel->y && mevent.y < LINES - 1) {
-                  Panel_setSelected(panel, mevent.y - panel->y + panel->scrollV - 1);
+                  Panel_setSelected(panel, CAST_SIZET(mevent.y - panel->y + (int)panel->scrollV - 1));
                   ch = 0;
                } else if (mevent.y == LINES - 1) {
                   ch = IncSet_synthesizeEvent(this->inc, mevent.x);

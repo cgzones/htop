@@ -252,13 +252,13 @@ static void updateViaExec(void) {
          }
          free_and_xStrdup(&systemState, lineBuffer + strlen("SystemState="));
       } else if (String_startsWith(lineBuffer, "NFailedUnits=")) {
-         nFailedUnits = strtoul(lineBuffer + strlen("NFailedUnits="), NULL, 10);
+         nFailedUnits = CAST_UNSIGNED(strtoul(lineBuffer + strlen("NFailedUnits="), NULL, 10));
       } else if (String_startsWith(lineBuffer, "NNames=")) {
-         nNames = strtoul(lineBuffer + strlen("NNames="), NULL, 10);
+         nNames = CAST_UNSIGNED(strtoul(lineBuffer + strlen("NNames="), NULL, 10));
       } else if (String_startsWith(lineBuffer, "NJobs=")) {
-         nJobs = strtoul(lineBuffer + strlen("NJobs="), NULL, 10);
+         nJobs = CAST_UNSIGNED(strtoul(lineBuffer + strlen("NJobs="), NULL, 10));
       } else if (String_startsWith(lineBuffer, "NInstalledJobs=")) {
-         nInstalledJobs = strtoul(lineBuffer + strlen("NInstalledJobs="), NULL, 10);
+         nInstalledJobs = CAST_UNSIGNED(strtoul(lineBuffer + strlen("NInstalledJobs="), NULL, 10));
       }
    }
 

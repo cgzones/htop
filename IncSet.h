@@ -23,7 +23,7 @@ typedef enum {
 
 typedef struct IncMode_ {
    char buffer[INCMODE_MAX + 1];
-   int index;
+   size_t index;
    FunctionBar* bar;
    bool isFilter;
 } IncMode;
@@ -42,7 +42,7 @@ static inline const char* IncSet_filter(const IncSet* this) {
 
 void IncSet_setFilter(IncSet* this, const char* filter);
 
-typedef const char* (*IncMode_GetPanelValue)(Panel*, int);
+typedef const char* (*IncMode_GetPanelValue)(Panel*, size_t);
 
 void IncSet_reset(IncSet* this, IncType type);
 
@@ -52,7 +52,7 @@ void IncSet_delete(IncSet* this);
 
 bool IncSet_handleKey(IncSet* this, int ch, Panel* panel, IncMode_GetPanelValue getPanelValue, Vector* lines);
 
-const char* IncSet_getListItemValue(Panel* panel, int i);
+const char* IncSet_getListItemValue(Panel* panel, size_t i);
 
 void IncSet_activate(IncSet* this, IncType type, Panel* panel);
 

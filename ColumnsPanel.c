@@ -31,9 +31,9 @@ static void ColumnsPanel_delete(Object* object) {
 static HandlerResult ColumnsPanel_eventHandler(Panel* super, int ch) {
    ColumnsPanel* const this = (ColumnsPanel*) super;
 
-   int selected = Panel_getSelectedIndex(super);
+   size_t selected = Panel_getSelectedIndex(super);
    HandlerResult result = IGNORED;
-   int size = Panel_size(super);
+   size_t size = Panel_size(super);
 
    switch(ch) {
       case 0x0a:
@@ -125,10 +125,9 @@ ColumnsPanel* ColumnsPanel_new(Settings* settings) {
    this->moving = false;
    Panel_setHeader(super, "Active Columns");
 
-   const ProcessField* fields = this->settings->fields;
-   for (; *fields; fields++) {
+   for (const ProcessField* fields = this->settings->fields; *fields; fields++) {
       if (Process_fields[*fields].name) {
-         Panel_add(super, (Object*) ListItem_new(Process_fields[*fields].name, *fields));
+         Panel_add(super, (Object*) ListItem_new(Process_fields[*fields].name, (int)*fields));
       }
    }
    return this;
@@ -136,13 +135,13 @@ ColumnsPanel* ColumnsPanel_new(Settings* settings) {
 
 void ColumnsPanel_update(Panel* super) {
    ColumnsPanel* this = (ColumnsPanel*) super;
-   int size = Panel_size(super);
+   size_t size = Panel_size(super);
    this->settings->changed = true;
    this->settings->fields = xRealloc(this->settings->fields, sizeof(ProcessField) * (size + 1));
    this->settings->flags = 0;
-   for (int i = 0; i < size; i++) {
+   for (size_t i = 0; i < size; i++) {
       int key = ((ListItem*) Panel_get(super, i))->key;
-      this->settings->fields[i] = key;
+      this->settings->fields[i] = (ProcessField)key;
       this->settings->flags |= Process_fields[key].flags;
    }
    this->settings->fields[size] = 0;

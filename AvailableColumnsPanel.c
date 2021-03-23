@@ -44,7 +44,7 @@ static HandlerResult AvailableColumnsPanel_eventHandler(Panel* super, int ch) {
             break;
 
          int key = selected->key;
-         int at = Panel_getSelectedIndex(this->columns);
+         size_t at = Panel_getSelectedIndex(this->columns);
          Panel_insert(this->columns, at, (Object*) ListItem_new(Process_fields[key].name, key));
          Panel_setSelected(this->columns, at+1);
          ColumnsPanel_update(this->columns);

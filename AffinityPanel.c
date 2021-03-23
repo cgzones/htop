@@ -40,7 +40,7 @@ typedef struct MaskItem_ {
    bool ownCpuset;
    hwloc_bitmap_t cpuset;
    #else
-   int cpu;
+   unsigned int cpu;
    #endif
 } MaskItem;
 
@@ -101,7 +101,7 @@ static MaskItem* MaskItem_newMask(const char* text, const char* indent, hwloc_bi
 
 #endif
 
-static MaskItem* MaskItem_newSingleton(const char* text, int cpu, bool isSet) {
+static MaskItem* MaskItem_newSingleton(const char* text, unsigned int cpu, bool isSet) {
    MaskItem* this = AllocThis(MaskItem);
    this->text = xStrdup(text);
    this->indent = NULL; /* not a tree node */
@@ -125,7 +125,7 @@ typedef struct AffinityPanel_ {
    ProcessList* pl;
    bool topoView;
    Vector* cpuids;
-   unsigned width;
+   unsigned int width;
 
    #ifdef HAVE_LIBHWLOC
    MaskItem* topoRoot;
@@ -163,7 +163,7 @@ static void AffinityPanel_updateTopo(AffinityPanel* this, MaskItem* item) {
    if (item->sub_tree == 2)
       return;
 
-   for (int i = 0; i < Vector_size(item->children); i++)
+   for (size_t i = 0; i < Vector_size(item->children); i++)
       AffinityPanel_updateTopo(this, (MaskItem*) Vector_get(item->children, i));
 }
 
@@ -174,14 +174,14 @@ static void AffinityPanel_update(AffinityPanel* this, bool keepSelected) {
 
    FunctionBar_setLabel(super->currentBar, KEY_F(3), this->topoView ? "Collapse/Expand" : "");
 
-   int oldSelected = Panel_getSelectedIndex(super);
+   size_t oldSelected = Panel_getSelectedIndex(super);
    Panel_prune(super);
 
    #ifdef HAVE_LIBHWLOC
    if (this->topoView) {
       AffinityPanel_updateTopo(this, this->topoRoot);
    } else {
-      for (int i = 0; i < Vector_size(this->cpuids); i++) {
+      for (size_t i = 0; i < Vector_size(this->cpuids); i++) {
          AffinityPanel_updateItem(this, (MaskItem*) Vector_get(this->cpuids, i));
       }
    }
@@ -266,7 +266,7 @@ static HandlerResult AffinityPanel_eventHandler(Panel* super, int ch) {
 static MaskItem* AffinityPanel_addObject(AffinityPanel* this, hwloc_obj_t obj, unsigned indent, MaskItem* parent) {
    const char* type_name = hwloc_obj_type_string(obj->type);
    const char* index_prefix = "#";
-   unsigned depth = obj->depth;
+   unsigned depth = CAST_UNSIGNED(obj->depth);
    unsigned index = obj->logical_index;
    size_t off = 0, left = 10 * depth;
    char buf[64], indent_buf[left + 1];
@@ -311,7 +311,7 @@ static MaskItem* AffinityPanel_addObject(AffinityPanel* this, hwloc_obj_t obj, u
    }
 
    /* "[x] " + "|- " * depth + ("- ")?(if root node) + name */
-   unsigned width = 4 + 3 * depth + (2 * !depth) + strlen(buf);
+   unsigned width = 4 + 3 * depth + (2U * !depth) + CAST_UNSIGNED(strlen(buf));
    if (width > this->width) {
       this->width = width;
    }
@@ -357,7 +357,7 @@ static const char* const AffinityPanelFunctions[] = {
 static const char* const AffinityPanelKeys[] = {"Enter", "Esc", "F1", "F2", "F3"};
 static const int AffinityPanelEvents[] = {13, 27, KEY_F(1), KEY_F(2), KEY_F(3)};
 
-Panel* AffinityPanel_new(ProcessList* pl, const Affinity* affinity, int* width) {
+Panel* AffinityPanel_new(ProcessList* pl, const Affinity* affinity, unsigned int* width) {
    AffinityPanel* this = AllocThis(AffinityPanel);
    Panel* super = (Panel*) this;
    Panel_init(super, 1, 1, 1, 1, Class(MaskItem), false, FunctionBar_new(AffinityPanelFunctions, AffinityPanelKeys, AffinityPanelEvents));
@@ -385,8 +385,7 @@ Panel* AffinityPanel_new(ProcessList* pl, const Affinity* affinity, int* width) 
    unsigned int curCpu = 0;
    for (unsigned int i = 0; i < pl->cpuCount; i++) {
       char number[16];
-      xSnprintf(number, 9, "CPU %d", Settings_cpuId(pl->settings, i));
-      unsigned cpu_width = 4 + strlen(number);
+      unsigned int cpu_width = 4 + xSnprintf(number, 9, "CPU %d", Settings_cpuId(pl->settings, i));
       if (cpu_width > this->width) {
          this->width = cpu_width;
       }
@@ -422,9 +421,9 @@ Affinity* AffinityPanel_getAffinity(Panel* super, ProcessList* pl) {
    Affinity* affinity = Affinity_new(pl);
 
    #ifdef HAVE_LIBHWLOC
-   unsigned int i;
+   int i;
    hwloc_bitmap_foreach_begin(i, this->workCpuset)
-   Affinity_add(affinity, i);
+   Affinity_add(affinity, CAST_UNSIGNED(i));
    hwloc_bitmap_foreach_end();
    #else
    for (unsigned int i = 0; i < this->pl->cpuCount; i++) {

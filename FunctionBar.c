@@ -99,10 +99,10 @@ void FunctionBar_drawExtra(const FunctionBar* this, const char* buffer, int attr
    for (int i = 0; i < this->size; i++) {
       attrset(CRT_colors[FUNCTION_KEY]);
       mvaddstr(LINES - 1, x, this->keys.constKeys[i]);
-      x += strlen(this->keys.constKeys[i]);
+      x += CAST_INT(strlen(this->keys.constKeys[i]));
       attrset(CRT_colors[FUNCTION_BAR]);
       mvaddstr(LINES - 1, x, this->functions[i]);
-      x += strlen(this->functions[i]);
+      x += CAST_INT(strlen(this->functions[i]));
    }
 
    if (buffer) {
@@ -112,7 +112,7 @@ void FunctionBar_drawExtra(const FunctionBar* this, const char* buffer, int attr
          attrset(attr);
       }
       mvaddstr(LINES - 1, x, buffer);
-      x += strlen(buffer);
+      x += CAST_INT(strlen(buffer));
    }
 
    attrset(CRT_colors[RESET_COLOR]);
@@ -136,14 +136,14 @@ void FunctionBar_append(const char* buffer, int attr) {
    mvaddstr(LINES - 1, currentLen + 1, buffer);
    attrset(CRT_colors[RESET_COLOR]);
 
-   currentLen += strlen(buffer) + 1;
+   currentLen += CAST_INT(strlen(buffer)) + 1;
 }
 
 int FunctionBar_synthesizeEvent(const FunctionBar* this, int pos) {
    int x = 0;
    for (int i = 0; i < this->size; i++) {
-      x += strlen(this->keys.constKeys[i]);
-      x += strlen(this->functions[i]);
+      x += CAST_INT(strlen(this->keys.constKeys[i]));
+      x += CAST_INT(strlen(this->functions[i]));
       if (pos < x) {
          return this->events[i];
       }

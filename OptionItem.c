@@ -45,7 +45,7 @@ static void NumberItem_display(const Object* cast, RichString* out) {
 
    char buffer[12];
    RichString_writeAscii(out, CRT_colors[CHECK_BOX], "[");
-   int written;
+   unsigned int written;
    if (this->scale < 0) {
       written = xSnprintf(buffer, sizeof(buffer), "%.*f", -this->scale, pow(10, this->scale) * NumberItem_get(this));
    } else if (this->scale > 0) {
@@ -55,7 +55,7 @@ static void NumberItem_display(const Object* cast, RichString* out) {
    }
    RichString_appendAscii(out, CRT_colors[CHECK_MARK], buffer);
    RichString_appendAscii(out, CRT_colors[CHECK_BOX], "]");
-   for (int i = written; i < 5; i++) {
+   for (unsigned int i = written; i < 5; i++) {
       RichString_appendAscii(out, CRT_colors[CHECK_BOX], " ");
    }
    RichString_appendWide(out, CRT_colors[CHECK_TEXT], this->super.text);

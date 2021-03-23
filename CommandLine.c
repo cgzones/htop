@@ -202,8 +202,8 @@ static CommandLineSettings parseArguments(const char* program, int argc, char** 
                flags.pidMatchList = Hashtable_new(8, false);
             }
 
-            while(pid) {
-                unsigned int num_pid = atoi(pid);
+            while (pid) {
+                unsigned int num_pid = CAST_UNSIGNED(atoi(pid));
                 //  deepcode ignore CastIntegerToAddress: we just want a non-NUll pointer here
                 Hashtable_put(flags.pidMatchList, num_pid, (void *) 1);
                 pid = strtok_r(NULL, ",", &saveptr);
@@ -248,10 +248,10 @@ static CommandLineSettings parseArguments(const char* program, int argc, char** 
    return flags;
 }
 
-static void CommandLine_delay(ProcessList* pl, unsigned long millisec) {
+static void CommandLine_delay(ProcessList* pl, unsigned int millisec) {
    struct timespec req = {
       .tv_sec = 0,
-      .tv_nsec = millisec * 1000000L
+      .tv_nsec = CAST_INT(millisec) * 1000000L
    };
    while (nanosleep(&req, &req) == -1)
       continue;
@@ -315,7 +315,7 @@ int CommandLine_run(const char* name, int argc, char** argv) {
       if (!flags.treeView) {
          settings->treeView = false;
       }
-      Settings_setSortKey(settings, flags.sortKey);
+      Settings_setSortKey(settings, (ProcessField) flags.sortKey);
    }
 
    CRT_init(settings, flags.allowUnicode);

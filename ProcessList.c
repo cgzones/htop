@@ -130,33 +130,33 @@ void ProcessList_printHeader(const ProcessList* this, RichString* header) {
 
 void ProcessList_add(ProcessList* this, Process* p) {
    assert(Vector_indexOf(this->processes, p, Process_pidCompare) == -1);
-   assert(Hashtable_get(this->processTable, p->pid) == NULL);
+   assert(Hashtable_get(this->processTable, CAST_UNSIGNED(p->pid)) == NULL); // TODO: introduce extra id
    p->processList = this;
 
    // highlighting processes found in first scan by first scan marked "far in the past"
    p->seenStampMs = this->monotonicMs;
 
    Vector_add(this->processes, p);
-   Hashtable_put(this->processTable, p->pid, p);
+   Hashtable_put(this->processTable, CAST_UNSIGNED(p->pid), p); // TODO: introduce extra id
 
    assert(Vector_indexOf(this->processes, p, Process_pidCompare) != -1);
-   assert(Hashtable_get(this->processTable, p->pid) != NULL);
+   assert(Hashtable_get(this->processTable, CAST_UNSIGNED(p->pid)) != NULL); // TODO: introduce extra id
    assert(Hashtable_count(this->processTable) == Vector_count(this->processes));
 }
 
 void ProcessList_remove(ProcessList* this, const Process* p) {
    assert(Vector_indexOf(this->processes, p, Process_pidCompare) != -1);
-   assert(Hashtable_get(this->processTable, p->pid) != NULL);
+   assert(Hashtable_get(this->processTable, CAST_UNSIGNED(p->pid)) != NULL); // TODO: introduce extra id
 
-   const Process* pp = Hashtable_remove(this->processTable, p->pid);
+   const Process* pp = Hashtable_remove(this->processTable, CAST_UNSIGNED(p->pid)); // TODO: introduce extra id
    assert(pp == p); (void)pp;
 
    pid_t pid = p->pid;
-   int idx = Vector_indexOf(this->processes, p, Process_pidCompare);
+   ssize_t idx = Vector_indexOf(this->processes, p, Process_pidCompare);
    assert(idx != -1);
 
    if (idx >= 0) {
-      Vector_remove(this->processes, idx);
+      Vector_remove(this->processes, (size_t)idx);
    }
 
    if (this->following != -1 && this->following == pid) {
@@ -164,7 +164,7 @@ void ProcessList_remove(ProcessList* this, const Process* p) {
       Panel_setSelectionColor(this->panel, PANEL_SELECTION_FOCUS);
    }
 
-   assert(Hashtable_get(this->processTable, pid) == NULL);
+   assert(Hashtable_get(this->processTable, CAST_UNSIGNED(pid)) == NULL); // TODO: introduce extra id
    assert(Hashtable_count(this->processTable) == Vector_count(this->processes));
 }
 
@@ -191,7 +191,7 @@ static void ProcessList_updateTreeSetLayer(ProcessList* this, unsigned int leftB
 
    // It's guaranteed that layer_size is enough space
    // but most likely it needs less. Specifically on first iteration.
-   int layerSize = (right - left) / 2;
+   unsigned int layerSize = (right - left) / 2;
 
    // check if we reach `children` of `leaves`
    if (layerSize == 0)
@@ -246,12 +246,12 @@ static void ProcessList_updateTreeSetLayer(ProcessList* this, unsigned int leftB
 
    Vector_quickSort(layer);
 
-   int size = Vector_size(layer);
-   for (int i = 0; i < size; i++) {
-      Process* proc = (Process*)Vector_get(layer, i);
+   size_t size = Vector_size(layer);
+   for (size_t i = 0; i < size; i++) {
+      Process* proc = (Process*) Vector_get(layer, i);
 
       unsigned int idx = (*index)++;
-      int newLeft = (*treeIndex)++;
+      unsigned int newLeft = (*treeIndex)++;
 
       int level = deep == 0 ? 0 : (int)deep - 1;
       int currentIndent = indent == -1 ? 0 : indent | (1 << level);
@@ -261,7 +261,7 @@ static void ProcessList_updateTreeSetLayer(ProcessList* this, unsigned int leftB
       unsigned int newRightBound = proc->tree_depth;
       ProcessList_updateTreeSetLayer(this, newLeftBound, newRightBound, deep + 1, proc->tree_left, proc->tree_right, index, treeIndex, nextIndent);
 
-      int newRight = (*treeIndex)++;
+      unsigned int newRight = (*treeIndex)++;
 
       proc->tree_left = newLeft;
       proc->tree_right = newRight;
@@ -290,10 +290,10 @@ static void ProcessList_updateTreeSet(ProcessList* this) {
    unsigned int index = 0;
    unsigned int tree_index = 1;
 
-   const int vsize = Vector_size(this->processes);
+   const unsigned int vsize = CAST_UNSIGNED(Vector_size(this->processes));
 
    assert(Hashtable_count(this->draftingTreeSet) == 0);
-   assert((int)Hashtable_count(this->displayTreeSet) == vsize);
+   assert(Hashtable_count(this->displayTreeSet) == vsize);
 
    ProcessList_updateTreeSetLayer(this, 0, vsize, 0, 0, vsize * 2 + 1, &index, &tree_index, -1);
 
@@ -302,10 +302,10 @@ static void ProcessList_updateTreeSet(ProcessList* this) {
    this->displayTreeSet = tmp;
 
    assert(Hashtable_count(this->draftingTreeSet) == 0);
-   assert((int)Hashtable_count(this->displayTreeSet) == vsize);
+   assert(Hashtable_count(this->displayTreeSet) == vsize);
 }
 
-static void ProcessList_buildTreeBranch(ProcessList* this, pid_t pid, int level, int indent, int direction, bool show, int* node_counter, int* node_index) {
+static void ProcessList_buildTreeBranch(ProcessList* this, pid_t pid, unsigned int level, int indent, int direction, bool show, unsigned int* node_counter, unsigned int* node_index) {
    // On OpenBSD the kernel thread 'swapper' has pid 0.
    // Do not treat it as root of any tree.
    if (pid == 0)
@@ -313,26 +313,26 @@ static void ProcessList_buildTreeBranch(ProcessList* this, pid_t pid, int level,
 
    Vector* children = Vector_new(Class(Process), false, DEFAULT_SIZE);
 
-   for (int i = Vector_size(this->processes) - 1; i >= 0; i--) {
-      Process* process = (Process*)Vector_get(this->processes, i);
+   for (size_t i = Vector_size(this->processes); i > 0; i--) {
+      Process* process = (Process*)Vector_get(this->processes, i - 1);
       if (process->show && Process_isChildOf(process, pid)) {
-         process = (Process*)Vector_take(this->processes, i);
+         process = (Process*)Vector_take(this->processes, i - 1);
          Vector_add(children, process);
       }
    }
 
-   int size = Vector_size(children);
-   for (int i = 0; i < size; i++) {
-      int index = (*node_index)++;
+   size_t size = Vector_size(children);
+   for (size_t i = 0; i < size; i++) {
+      unsigned int index = (*node_index)++;
       Process* process = (Process*)Vector_get(children, i);
 
-      int lft = (*node_counter)++;
+      unsigned int lft = (*node_counter)++;
 
       if (!show) {
          process->show = false;
       }
 
-      int s = Vector_size(this->processes2);
+      size_t s = Vector_size(this->processes2);
       if (direction == 1) {
          Vector_add(this->processes2, process);
       } else {
@@ -349,7 +349,7 @@ static void ProcessList_buildTreeBranch(ProcessList* this, pid_t pid, int level,
          process->indent = nextIndent;
       }
 
-      int rht = (*node_counter)++;
+      unsigned int rht = (*node_counter)++;
 
       process->tree_left = lft;
       process->tree_right = rht;
@@ -376,18 +376,18 @@ static int ProcessList_treeProcessCompareByPID(const void* v1, const void* v2) {
 
 // Builds a sorted tree from scratch, without relying on previously gathered information
 static void ProcessList_buildTree(ProcessList* this) {
-   int node_counter = 1;
-   int node_index = 0;
+   unsigned int node_counter = 1;
+   unsigned int node_index = 0;
    int direction = Settings_getActiveDirection(this->settings);
 
    // Sort by PID
    Vector_quickSortCustomCompare(this->processes, ProcessList_treeProcessCompareByPID);
-   int vsize = Vector_size(this->processes);
+   const size_t vsize = Vector_size(this->processes);
 
    // Find all processes whose parent is not visible
-   int size;
+   size_t size;
    while ((size = Vector_size(this->processes))) {
-      int i;
+      size_t i;
       for (i = 0; i < size; i++) {
          Process* process = (Process*)Vector_get(this->processes, i);
 
@@ -408,8 +408,8 @@ static void ProcessList_buildTree(ProcessList* this) {
          pid_t ppid = Process_getParentPid(process);
 
          // Bisect the process vector to find parent
-         int l = 0;
-         int r = size;
+         size_t l = 0;
+         size_t r = size;
 
          // If PID corresponds with PPID (e.g. "kernel_task" (PID:0, PPID:0)
          // on Mac OS X 10.11.6) cancel bisecting and regard this process as
@@ -423,7 +423,7 @@ static void ProcessList_buildTree(ProcessList* this) {
             r = 0;
 
          while (l < r) {
-            int c = (l + r) / 2;
+            size_t c = (l + r) / 2;
             pid_t pid = ((Process*)Vector_get(this->processes, c))->pid;
             if (ppid == pid) {
                break;
@@ -472,12 +472,12 @@ void ProcessList_sort(ProcessList* this) {
    }
 }
 
-ProcessField ProcessList_keyAt(const ProcessList* this, int at) {
-   int x = 0;
+ProcessField ProcessList_keyAt(const ProcessList* this, size_t at) {
+   size_t x = 0;
    const ProcessField* fields = this->settings->fields;
    ProcessField field;
    for (int i = 0; (field = fields[i]); i++) {
-      int len = strlen(alignedProcessFieldTitle(field));
+      size_t len = strlen(alignedProcessFieldTitle(field));
       if (at >= x && at <= x + len) {
          return field;
       }
@@ -487,16 +487,16 @@ ProcessField ProcessList_keyAt(const ProcessList* this, int at) {
 }
 
 void ProcessList_expandTree(ProcessList* this) {
-   int size = Vector_size(this->processes);
-   for (int i = 0; i < size; i++) {
+   size_t size = Vector_size(this->processes);
+   for (size_t i = 0; i < size; i++) {
       Process* process = (Process*) Vector_get(this->processes, i);
       process->showChildren = true;
    }
 }
 
 void ProcessList_collapseAllBranches(ProcessList* this) {
-   int size = Vector_size(this->processes);
-   for (int i = 0; i < size; i++) {
+   size_t size = Vector_size(this->processes);
+   for (size_t i = 0; i < size; i++) {
       Process* process = (Process*) Vector_get(this->processes, i);
       // FreeBSD has pid 0 = kernel and pid 1 = init, so init has tree_depth = 1
       if (process->tree_depth > 0 && process->pid > 1)
@@ -507,32 +507,32 @@ void ProcessList_collapseAllBranches(ProcessList* this) {
 void ProcessList_rebuildPanel(ProcessList* this) {
    const char* incFilter = this->incFilter;
 
-   const int currPos = Panel_getSelectedIndex(this->panel);
-   const int currScrollV = this->panel->scrollV;
-   const int currSize = Panel_size(this->panel);
+   const size_t currPos = Panel_getSelectedIndex(this->panel);
+   const size_t currScrollV = this->panel->scrollV;
+   const size_t currSize = Panel_size(this->panel);
 
    Panel_prune(this->panel);
 
    /* Follow main process if followed a userland thread and threads are now hidden */
    const Settings* settings = this->settings;
    if (this->following != -1 && settings->hideUserlandThreads) {
-      const Process* followedProcess = (const Process*) Hashtable_get(this->processTable, this->following);
-      if (followedProcess && Process_isThread(followedProcess) && Hashtable_get(this->processTable, followedProcess->tgid) != NULL) {
+      const Process* followedProcess = (const Process*) Hashtable_get(this->processTable, CAST_UNSIGNED(this->following)); // TODO: introduce extra id
+      if (followedProcess && Process_isThread(followedProcess) && Hashtable_get(this->processTable, CAST_UNSIGNED(followedProcess->tgid)) != NULL) { // TODO: introduce extra id
          this->following = followedProcess->tgid;
       }
    }
 
-   const int processCount = Vector_size(this->processes);
-   int idx = 0;
+   const size_t processCount = Vector_size(this->processes);
+   size_t idx = 0;
    bool foundFollowed = false;
 
-   for (int i = 0; i < processCount; i++) {
+   for (size_t i = 0; i < processCount; i++) {
       Process* p = (Process*) Vector_get(this->processes, i);
 
       if ( (!p->show)
          || (this->userId != (uid_t) -1 && (p->st_uid != this->userId))
          || (incFilter && !(String_contains_i(Process_getCommand(p), incFilter)))
-         || (this->pidMatchList && !Hashtable_get(this->pidMatchList, p->tgid)) )
+         || (this->pidMatchList && !Hashtable_get(this->pidMatchList, CAST_UNSIGNED(p->tgid))) ) // TODO: introduce extra id
          continue;
 
       Panel_set(this->panel, idx, (Object*)p);
@@ -563,7 +563,7 @@ void ProcessList_rebuildPanel(ProcessList* this) {
 }
 
 Process* ProcessList_getProcess(ProcessList* this, pid_t pid, bool* preExisting, Process_New constructor) {
-   Process* proc = (Process*) Hashtable_get(this->processTable, pid);
+   Process* proc = (Process*) Hashtable_get(this->processTable, CAST_UNSIGNED(pid)); // TODO: introduce extra id
    *preExisting = proc != NULL;
    if (proc) {
       assert(Vector_indexOf(this->processes, proc, Process_pidCompare) != -1);
@@ -584,7 +584,7 @@ void ProcessList_scan(ProcessList* this, bool pauseProcessUpdate) {
    }
 
    // mark all process as "dirty"
-   for (int i = 0; i < Vector_size(this->processes); i++) {
+   for (size_t i = 0; i < Vector_size(this->processes); i++) {
       Process* p = (Process*) Vector_get(this->processes, i);
       p->updated = false;
       p->wasShown = p->show;
@@ -608,8 +608,8 @@ void ProcessList_scan(ProcessList* this, bool pauseProcessUpdate) {
 
    ProcessList_goThroughEntries(this, false);
 
-   for (int i = Vector_size(this->processes) - 1; i >= 0; i--) {
-      Process* p = (Process*) Vector_get(this->processes, i);
+   for (ssize_t i = (ssize_t)Vector_size(this->processes) - 1; i != -1; i--) {
+      Process* p = (Process*) Vector_get(this->processes, (size_t)i);
       if (p->tombStampMs > 0) {
          // remove tombed process
          if (this->monotonicMs >= p->tombStampMs) {
@@ -619,7 +619,7 @@ void ProcessList_scan(ProcessList* this, bool pauseProcessUpdate) {
          // process no longer exists
          if (this->settings->highlightChanges && p->wasShown) {
             // mark tombed
-            p->tombStampMs = this->monotonicMs + 1000 * this->settings->highlightDelaySecs;
+            p->tombStampMs = this->monotonicMs + 1000 * CAST_UNSIGNED(this->settings->highlightDelaySecs);
          } else {
             // immediately remove
             ProcessList_remove(this, p);

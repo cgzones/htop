@@ -166,7 +166,7 @@ static void CPUMeter_display(const Object* cast, RichString* out) {
    #endif
 }
 
-static void AllCPUsMeter_getRange(const Meter* this, int* start, int* count) {
+static void AllCPUsMeter_getRange(const Meter* this, unsigned int* start, unsigned int* count) {
    const CPUMeterData* data = this->meterData;
    unsigned int cpus = data->cpus;
    switch(Meter_name(this)[0]) {
@@ -189,13 +189,13 @@ static void AllCPUsMeter_getRange(const Meter* this, int* start, int* count) {
 static void AllCPUsMeter_updateValues(Meter* this) {
    CPUMeterData* data = this->meterData;
    Meter** meters = data->meters;
-   int start, count;
+   unsigned int start, count;
    AllCPUsMeter_getRange(this, &start, &count);
-   for (int i = 0; i < count; i++)
+   for (unsigned int i = 0; i < count; i++)
       Meter_updateValues(meters[i]);
 }
 
-static void CPUMeterCommonInit(Meter* this, int ncol) {
+static void CPUMeterCommonInit(Meter* this, unsigned int ncol) {
    unsigned int cpus = this->pl->cpuCount;
    CPUMeterData* data = this->meterData;
    if (!data) {
@@ -204,30 +204,30 @@ static void CPUMeterCommonInit(Meter* this, int ncol) {
       data->meters = xCalloc(cpus, sizeof(Meter*));
    }
    Meter** meters = data->meters;
-   int start, count;
+   unsigned int start, count;
    AllCPUsMeter_getRange(this, &start, &count);
-   for (int i = 0; i < count; i++) {
+   for (unsigned int i = 0; i < count; i++) {
       if (!meters[i])
          meters[i] = Meter_new(this->pl, start + i + 1, (const MeterClass*) Class(CPUMeter));
 
       Meter_init(meters[i]);
    }
 
-   if (this->mode == 0)
+   if (this->mode == CUSTOM_METERMODE)
       this->mode = BAR_METERMODE;
 
-   int h = Meter_modes[this->mode]->h;
+   unsigned int h = Meter_modes[this->mode]->h;
    this->h = h * ((count + ncol - 1) / ncol);
 }
 
-static void CPUMeterCommonUpdateMode(Meter* this, int mode, int ncol) {
+static void CPUMeterCommonUpdateMode(Meter* this, MeterModeId mode, unsigned int ncol) {
    CPUMeterData* data = this->meterData;
    Meter** meters = data->meters;
    this->mode = mode;
-   int h = Meter_modes[mode]->h;
-   int start, count;
+   unsigned int h = Meter_modes[mode]->h;
+   unsigned int start, count;
    AllCPUsMeter_getRange(this, &start, &count);
-   for (int i = 0; i < count; i++) {
+   for (unsigned int i = 0; i < count; i++) {
       Meter_setMode(meters[i], mode);
    }
    this->h = h * ((count + ncol - 1) / ncol);
@@ -236,9 +236,9 @@ static void CPUMeterCommonUpdateMode(Meter* this, int mode, int ncol) {
 static void AllCPUsMeter_done(Meter* this) {
    CPUMeterData* data = this->meterData;
    Meter** meters = data->meters;
-   int start, count;
+   unsigned int start, count;
    AllCPUsMeter_getRange(this, &start, &count);
-   for (int i = 0; i < count; i++)
+   for (unsigned int i = 0; i < count; i++)
       Meter_delete((Object*)meters[i]);
    free(data->meters);
    free(data);
@@ -248,7 +248,7 @@ static void SingleColCPUsMeter_init(Meter* this) {
    CPUMeterCommonInit(this, 1);
 }
 
-static void SingleColCPUsMeter_updateMode(Meter* this, int mode) {
+static void SingleColCPUsMeter_updateMode(Meter* this, MeterModeId mode) {
    CPUMeterCommonUpdateMode(this, mode, 1);
 }
 
@@ -256,7 +256,7 @@ static void DualColCPUsMeter_init(Meter* this) {
    CPUMeterCommonInit(this, 2);
 }
 
-static void DualColCPUsMeter_updateMode(Meter* this, int mode) {
+static void DualColCPUsMeter_updateMode(Meter* this, MeterModeId mode) {
    CPUMeterCommonUpdateMode(this, mode, 2);
 }
 
@@ -264,7 +264,7 @@ static void QuadColCPUsMeter_init(Meter* this) {
    CPUMeterCommonInit(this, 4);
 }
 
-static void QuadColCPUsMeter_updateMode(Meter* this, int mode) {
+static void QuadColCPUsMeter_updateMode(Meter* this, MeterModeId mode) {
    CPUMeterCommonUpdateMode(this, mode, 4);
 }
 
@@ -272,23 +272,23 @@ static void OctoColCPUsMeter_init(Meter* this) {
    CPUMeterCommonInit(this, 8);
 }
 
-static void OctoColCPUsMeter_updateMode(Meter* this, int mode) {
+static void OctoColCPUsMeter_updateMode(Meter* this, MeterModeId mode) {
    CPUMeterCommonUpdateMode(this, mode, 8);
 }
 
-static void CPUMeterCommonDraw(Meter* this, int x, int y, int w, int ncol) {
+static void CPUMeterCommonDraw(Meter* this, int x, int y, int w, unsigned int ncol) {
    CPUMeterData* data = this->meterData;
    Meter** meters = data->meters;
-   int start, count;
+   unsigned int start, count;
    AllCPUsMeter_getRange(this, &start, &count);
-   int colwidth = (w - ncol) / ncol + 1;
-   int diff = (w - (colwidth * ncol));
-   int nrows = (count + ncol - 1) / ncol;
-   for (int i = 0; i < count; i++) {
-      int d = (i / nrows) > diff ? diff : (i / nrows); // dynamic spacer
-      int xpos = x + ((i / nrows) * colwidth) + d;
-      int ypos = y + ((i % nrows) * meters[0]->h);
-      meters[i]->draw(meters[i], xpos, ypos, colwidth);
+   unsigned int colwidth = (((unsigned int)w > ncol) ? ((unsigned int)w - ncol) : 0) / ncol + 1;
+   unsigned int diff = ((unsigned int)w - (colwidth * ncol));
+   unsigned int nrows = (count + ncol - 1) / ncol;
+   for (unsigned int i = 0; i < count; i++) {
+      unsigned int d = (i / nrows) > diff ? diff : (i / nrows); // dynamic spacer
+      int xpos = x + (int)((i / nrows) * colwidth) + (int)d;
+      int ypos = y + (int)((i % nrows) * meters[0]->h);
+      meters[i]->draw(meters[i], xpos, ypos, CAST_INT(colwidth));
    }
 }
 
@@ -308,11 +308,11 @@ static void OctoColCPUsMeter_draw(Meter* this, int x, int y, int w) {
 static void SingleColCPUsMeter_draw(Meter* this, int x, int y, int w) {
    CPUMeterData* data = this->meterData;
    Meter** meters = data->meters;
-   int start, count;
+   unsigned int start, count;
    AllCPUsMeter_getRange(this, &start, &count);
-   for (int i = 0; i < count; i++) {
+   for (unsigned int i = 0; i < count; i++) {
       meters[i]->draw(meters[i], x, y, w);
-      y += meters[i]->h;
+      y += CAST_INT(meters[i]->h);
    }
 }
 

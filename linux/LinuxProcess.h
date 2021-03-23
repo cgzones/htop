@@ -37,13 +37,13 @@ in the source distribution for its full text.
  * threads and zombies */
 typedef struct LinuxProcessMergedCommand_ {
    char *str;           /* merged Command string */
-   int maxLen;          /* maximum expected length of Command string */
-   int baseStart;       /* basename's start offset */
-   int baseEnd;         /* basename's end offset */
-   int commStart;       /* comm's start offset */
-   int commEnd;         /* comm's end offset */
-   int sep1;            /* first field separator, used if non-zero */
-   int sep2;            /* second field separator, used if non-zero */
+   size_t maxLen_; /* maximum expected length of Command string */  // TODO: revert
+   size_t baseStart_;       /* basename's start offset */ //TODO: revert
+   size_t baseEnd_;         /* basename's end offset */ // TODO: revert
+   size_t commStart_;       /* comm's start offset */ //TODO: revert
+   size_t commEnd_;         /* comm's end offset */ // TODO: revert
+   size_t sep1;            /* first field separator, used if non-zero */
+   size_t sep2;            /* second field separator, used if non-zero */
    bool separateComm;   /* whether comm is a separate field */
    bool unmatchedExe;   /* whether exe matched with cmdline */
    bool cmdlineChanged; /* whether cmdline changed */
@@ -59,11 +59,11 @@ typedef struct LinuxProcess_ {
    Process super;
    char *procComm;
    char *procExe;
-   int procExeLen;
-   int procExeBasenameOffset;
+   size_t procExeLen_;  //TODO: revert
+   size_t procExeBasenameOffset_; //TODO: revert
    bool procExeDeleted;
-   int procCmdlineBasenameOffset;
-   int procCmdlineBasenameEnd;
+   size_t procCmdlineBasenameOffset_; //TODO: revert
+   size_t procCmdlineBasenameEnd_; //TODO: revert
    LinuxProcessMergedCommand mergedCommand;
    bool isKernelThread;
    IOPriority ioPriority;
@@ -79,7 +79,7 @@ typedef struct LinuxProcess_ {
    long m_psswp;
    long m_trs;
    long m_drs;
-   long m_lrs;
+   unsigned long m_lrs;
    long m_dt;
 
    /* Data read (in kilobytes) */
@@ -138,10 +138,6 @@ typedef struct LinuxProcess_ {
 static inline bool Process_isUserlandThread(const Process* this) {
    return this->pid != this->tgid;
 }
-
-extern int pageSize;
-
-extern int pageSizeKB;
 
 extern const ProcessFieldData Process_fields[LAST_PROCESSFIELD];
 

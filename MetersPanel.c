@@ -63,7 +63,7 @@ void MetersPanel_setMoving(MetersPanel* this, bool moving) {
    }
 }
 
-static inline bool moveToNeighbor(MetersPanel* this, MetersPanel* neighbor, int selected) {
+static bool moveToNeighbor(MetersPanel* this, MetersPanel* neighbor, size_t selected) {
    Panel* super = (Panel*) this;
    if (this->moving) {
       if (neighbor) {
@@ -87,7 +87,7 @@ static inline bool moveToNeighbor(MetersPanel* this, MetersPanel* neighbor, int 
 static HandlerResult MetersPanel_eventHandler(Panel* super, int ch) {
    MetersPanel* this = (MetersPanel*) super;
 
-   int selected = Panel_getSelectedIndex(super);
+   size_t selected = Panel_getSelectedIndex(super);
    HandlerResult result = IGNORED;
    bool sideMove = false;
 
@@ -109,8 +109,9 @@ static HandlerResult MetersPanel_eventHandler(Panel* super, int ch) {
          if (!Vector_size(this->meters))
             break;
          Meter* meter = (Meter*) Vector_get(this->meters, selected);
-         int mode = meter->mode + 1;
-         if (mode == LAST_METERMODE) mode = 1;
+         MeterModeId mode = meter->mode + 1;
+         if (mode == LAST_METERMODE)
+            mode = BAR_METERMODE;
          Meter_setMode(meter, mode);
          Panel_set(super, selected, (Object*) Meter_toListItem(meter, this->moving));
          result = HANDLED;
@@ -186,7 +187,7 @@ static HandlerResult MetersPanel_eventHandler(Panel* super, int ch) {
       this->settings->changed = true;
       Header_calculateHeight(header);
       Header_draw(header);
-      ScreenManager_resize(this->scr, this->scr->x1, header->height, this->scr->x2, this->scr->y2);
+      ScreenManager_resize(this->scr, this->scr->x1, CAST_INT(header->height), this->scr->x2, this->scr->y2);
    }
    return result;
 }
@@ -215,7 +216,7 @@ MetersPanel* MetersPanel_new(Settings* settings, const char* header, Vector* met
    this->rightNeighbor = NULL;
    this->leftNeighbor = NULL;
    Panel_setHeader(super, header);
-   for (int i = 0; i < Vector_size(meters); i++) {
+   for (size_t i = 0; i < Vector_size(meters); i++) {
       const Meter* meter = (const Meter*) Vector_get(meters, i);
       Panel_add(super, (Object*) Meter_toListItem(meter, false));
    }

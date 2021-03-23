@@ -20,7 +20,7 @@ in the source distribution for its full text.
 #include "XUtils.h"
 
 
-Header* Header_new(ProcessList* pl, Settings* settings, int nrColumns) {
+Header* Header_new(ProcessList* pl, Settings* settings, unsigned int nrColumns) {
    Header* this = xCalloc(1, sizeof(Header));
    this->columns = xCalloc(nrColumns, sizeof(Vector*));
    this->settings = settings;
@@ -43,7 +43,7 @@ void Header_delete(Header* this) {
 void Header_populateFromSettings(Header* this) {
    Header_forEachColumn(this, col) {
       const MeterColumnSettings* colSettings = &this->settings->columns[col];
-      for (int i = 0; i < colSettings->len; i++) {
+      for (unsigned int i = 0; i < colSettings->len; i++) {
          Header_addMeterByName(this, colSettings->names[i], col);
          if (colSettings->modes[i] != 0) {
             Header_setMode(this, i, colSettings->modes[i], col);
@@ -61,13 +61,13 @@ void Header_writeBackToSettings(const Header* this) {
       free(colSettings->modes);
 
       const Vector* vec = this->columns[col];
-      int len = Vector_size(vec);
+      size_t len = Vector_size(vec);
 
       colSettings->names = xCalloc(len + 1, sizeof(char*));
       colSettings->modes = xCalloc(len, sizeof(int));
       colSettings->len = len;
 
-      for (int i = 0; i < len; i++) {
+      for (size_t i = 0; i < len; i++) {
          const Meter* meter = (Meter*) Vector_get(vec, i);
          char* name;
          if (meter->param) {
@@ -81,7 +81,7 @@ void Header_writeBackToSettings(const Header* this) {
    }
 }
 
-MeterModeId Header_addMeterByName(Header* this, const char* name, int column) {
+MeterModeId Header_addMeterByName(Header* this, const char* name, unsigned int column) {
    Vector* meters = this->columns[column];
 
    char* paren = strchr(name, '(');
@@ -108,7 +108,7 @@ MeterModeId Header_addMeterByName(Header* this, const char* name, int column) {
    return mode;
 }
 
-void Header_setMode(Header* this, int i, MeterModeId mode, int column) {
+void Header_setMode(Header* this, unsigned int i, MeterModeId mode, unsigned int column) {
    Vector* meters = this->columns[column];
 
    if (i >= Vector_size(meters))
@@ -118,7 +118,7 @@ void Header_setMode(Header* this, int i, MeterModeId mode, int column) {
    Meter_setMode(meter, mode);
 }
 
-Meter* Header_addMeterByClass(Header* this, const MeterClass* type, unsigned int param, int column) {
+Meter* Header_addMeterByClass(Header* this, const MeterClass* type, unsigned int param, unsigned int column) {
    Vector* meters = this->columns[column];
 
    Meter* meter = Meter_new(this->pl, param, type);
@@ -126,12 +126,12 @@ Meter* Header_addMeterByClass(Header* this, const MeterClass* type, unsigned int
    return meter;
 }
 
-int Header_size(const Header* this, int column) {
+size_t Header_size(const Header* this, unsigned int column) {
    const Vector* meters = this->columns[column];
    return Vector_size(meters);
 }
 
-MeterModeId Header_readMeterMode(const Header* this, int i, int column) {
+MeterModeId Header_readMeterMode(const Header* this, unsigned int i, unsigned int column) {
    const Vector* meters = this->columns[column];
 
    const Meter* meter = (const Meter*) Vector_get(meters, i);
@@ -140,7 +140,7 @@ MeterModeId Header_readMeterMode(const Header* this, int i, int column) {
 
 void Header_reinit(Header* this) {
    Header_forEachColumn(this, col) {
-      for (int i = 0; i < Vector_size(this->columns[col]); i++) {
+      for (unsigned int i = 0; i < Vector_size(this->columns[col]); i++) {
          Meter* meter = (Meter*) Vector_get(this->columns[col], i);
          if (Meter_initFn(meter)) {
             Meter_init(meter);
@@ -150,27 +150,27 @@ void Header_reinit(Header* this) {
 }
 
 void Header_draw(const Header* this) {
-   const int height = this->height;
-   const int pad = this->pad;
+   const unsigned int height = this->height;
+   const unsigned int pad = this->pad;
    attrset(CRT_colors[RESET_COLOR]);
-   for (int y = 0; y < height; y++) {
-      mvhline(y, 0, ' ', COLS);
+   for (unsigned int i = 0; i < height; i++) {
+      mvhline(CAST_INT(i), 0, ' ', COLS);
    }
-   const int width = COLS / this->nrColumns - pad;
-   int x = pad;
+   const unsigned int width = (unsigned int)COLS / this->nrColumns - pad;
+   unsigned int x = pad;
 
    Header_forEachColumn(this, col) {
       Vector* meters = this->columns[col];
-      for (int y = (pad / 2), i = 0; i < Vector_size(meters); i++) {
+      for (unsigned int y = (pad / 2), i = 0; i < Vector_size(meters); i++) {
          Meter* meter = (Meter*) Vector_get(meters, i);
 
-         int actualWidth;
+         unsigned int actualWidth;
          if (meter->mode == TEXT_METERMODE)
             actualWidth = meter->columnWidthCount * width + (meter->columnWidthCount - 1) * (2 * pad + 1);
          else
             actualWidth = width;
 
-         meter->draw(meter, x, y, actualWidth);
+         meter->draw(meter, CAST_INT(x), CAST_INT(y), CAST_INT(actualWidth));
          y += meter->h;
       }
       x += width + pad;
@@ -180,8 +180,8 @@ void Header_draw(const Header* this) {
 void Header_updateData(Header* this) {
    Header_forEachColumn(this, col) {
       Vector* meters = this->columns[col];
-      int items = Vector_size(meters);
-      for (int i = 0; i < items; i++) {
+      size_t items = Vector_size(meters);
+      for (size_t i = 0; i < items; i++) {
          Meter* meter = (Meter*) Vector_get(meters, i);
          Meter_updateValues(meter);
       }
@@ -193,12 +193,12 @@ void Header_updateData(Header* this) {
  * by counting how many columns to the right are empty or contain a BlankMeter.
  * Returns the number of columns to span, i.e. if the direct neighbor is occupied 1.
  */
-static int calcColumnWidthCount(const Header* this, const Meter* curMeter, const int pad, const int curColumn, const int curHeight) {
-   for (int i = curColumn + 1; i < this->nrColumns; i++) {
+static unsigned int calcColumnWidthCount(const Header* this, const Meter* curMeter, const unsigned int pad, const unsigned int curColumn, const unsigned int curHeight) {
+   for (unsigned int i = curColumn + 1; i < this->nrColumns; i++) {
       const Vector* meters = this->columns[i];
 
-      int height = pad;
-      for (int j = 0; j < Vector_size(meters); j++) {
+      unsigned int height = pad;
+      for (unsigned int j = 0; j < Vector_size(meters); j++) {
          const Meter* meter = (const Meter*) Vector_get(meters, j);
 
          if (height >= curHeight + curMeter->h)
@@ -216,14 +216,14 @@ static int calcColumnWidthCount(const Header* this, const Meter* curMeter, const
    return this->nrColumns - curColumn;
 }
 
-int Header_calculateHeight(Header* this) {
-   const int pad = this->settings->headerMargin ? 2 : 0;
-   int maxHeight = pad;
+unsigned int Header_calculateHeight(Header* this) {
+   const unsigned int pad = this->settings->headerMargin ? 2 : 0;
+   unsigned int maxHeight = pad;
 
    Header_forEachColumn(this, col) {
       const Vector* meters = this->columns[col];
-      int height = pad;
-      for (int i = 0; i < Vector_size(meters); i++) {
+      unsigned int height = pad;
+      for (unsigned int i = 0; i < Vector_size(meters); i++) {
          Meter* meter = (Meter*) Vector_get(meters, i);
          meter->columnWidthCount = calcColumnWidthCount(this, meter, pad, col, height);
          height += meter->h;

@@ -41,17 +41,17 @@ static void HugePageMeter_updateValues(Meter* this) {
    unsigned nextUsed = 0;
 
    const LinuxProcessList* lpl = (const LinuxProcessList*) this->pl;
-   this->total = lpl->totalHugePageMem;
+   this->total = (double)lpl->totalHugePageMem;
    this->values[0] = 0;
    HugePageMeter_active_labels[0] = " used:";
    for (unsigned i = 1; i < ARRAYSIZE(HugePageMeter_active_labels); i++) {
-      this->values[i] = NAN;
+      this->values[i] = DNAN;
       HugePageMeter_active_labels[i] = NULL;
    }
    for (unsigned i = 0; i < HTOP_HUGEPAGE_COUNT; i++) {
       memory_t value = lpl->usedHugePageMem[i];
       if (value != MEMORY_MAX) {
-         this->values[nextUsed] = value;
+         this->values[nextUsed] = (double)value;
          usedTotal += value;
          HugePageMeter_active_labels[nextUsed] = HugePageMeter_labels[i];
          if (++nextUsed == ARRAYSIZE(HugePageMeter_active_labels)) {
@@ -60,7 +60,7 @@ static void HugePageMeter_updateValues(Meter* this) {
       }
    }
 
-   written = Meter_humanUnit(buffer, usedTotal, size);
+   written = Meter_humanUnit(buffer, (double)usedTotal, size);
    METER_BUFFER_CHECK(buffer, size, written);
 
    METER_BUFFER_APPEND_CHR(buffer, size, '/');

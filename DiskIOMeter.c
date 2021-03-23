@@ -74,7 +74,7 @@ static void DiskIOMeter_updateValues(Meter* this) {
 
       if (data.totalMsTimeSpend > cached_msTimeSpend_total) {
          diff = data.totalMsTimeSpend - cached_msTimeSpend_total;
-         cached_utilisation_diff = 100.0 * (double)diff / passedTimeInMs;
+         cached_utilisation_diff = 100.0 * (double)diff / (double)passedTimeInMs;
       } else {
          cached_utilisation_diff = 0.0;
       }

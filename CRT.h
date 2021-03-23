@@ -28,17 +28,6 @@ typedef enum TreeStr_ {
    LAST_TREE_STR
 } TreeStr;
 
-typedef enum ColorScheme_ {
-   COLORSCHEME_DEFAULT,
-   COLORSCHEME_MONOCHROME,
-   COLORSCHEME_BLACKONWHITE,
-   COLORSCHEME_LIGHTTERMINAL,
-   COLORSCHEME_MIDNIGHT,
-   COLORSCHEME_BLACKNIGHT,
-   COLORSCHEME_BROKENGRAY,
-   LAST_COLORSCHEME
-} ColorScheme;
-
 typedef enum ColorElements_ {
    RESET_COLOR,
    DEFAULT_COLOR,
@@ -157,9 +146,9 @@ extern const int* CRT_colors;
 
 extern int CRT_cursorX;
 
-extern int CRT_scrollHAmount;
+extern unsigned int CRT_scrollHAmount;
 
-extern int CRT_scrollWheelVAmount;
+extern unsigned int CRT_scrollWheelVAmount;
 
 extern ColorScheme CRT_colorScheme;
 
@@ -173,6 +162,6 @@ void CRT_disableDelay(void);
 
 void CRT_enableDelay(void);
 
-void CRT_setColors(int colorScheme);
+void CRT_setColors(ColorScheme colorScheme);
 
 #endif

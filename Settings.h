@@ -12,15 +12,16 @@ in the source distribution for its full text.
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "htop.h"
 #include "Process.h"
 
 
 #define DEFAULT_DELAY 15
 
 typedef struct {
-   int len;
+   size_t len;
    char** names;
-   int* modes;
+   MeterModeId* modes;
 } MeterColumnSettings;
 
 typedef struct Settings_ {
@@ -29,7 +30,7 @@ typedef struct Settings_ {
 
    ProcessField* fields;
    uint32_t flags;
-   int colorScheme;
+   ColorScheme colorScheme;
    int delay;
 
    int direction;

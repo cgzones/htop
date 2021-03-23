@@ -101,7 +101,7 @@ void ProcessList_remove(ProcessList* this, const Process* p);
 
 void ProcessList_sort(ProcessList* this);
 
-ProcessField ProcessList_keyAt(const ProcessList* this, int at);
+ProcessField ProcessList_keyAt(const ProcessList* this, size_t at);
 
 void ProcessList_expandTree(ProcessList* this);
 
@@ -114,7 +114,7 @@ Process* ProcessList_getProcess(ProcessList* this, pid_t pid, bool* preExisting,
 void ProcessList_scan(ProcessList* this, bool pauseProcessUpdate);
 
 static inline Process* ProcessList_findProcess(ProcessList* this, pid_t pid) {
-   return (Process*) Hashtable_get(this->processTable, pid);
+   return (Process*) Hashtable_get(this->processTable, (ht_key_t)pid); // TODO: introduce extra id
 }
 
 #endif

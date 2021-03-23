@@ -106,7 +106,7 @@ static bool changePriority(MainPanel* panel, int delta) {
 static void addUserToVector(ht_key_t key, void* userCast, void* panelCast) {
    const char* user = userCast;
    Panel* panel = panelCast;
-   Panel_add(panel, (Object*) ListItem_new(user, key));
+   Panel_add(panel, (Object*) ListItem_new(user, CAST_INT(key)));
 }
 
 bool Action_setUserOnly(const char* userName, uid_t* userId) {
@@ -122,7 +122,7 @@ bool Action_setUserOnly(const char* userName, uid_t* userId) {
 static void tagAllChildren(Panel* panel, Process* parent) {
    parent->tag = true;
    pid_t ppid = parent->pid;
-   for (int i = 0; i < Panel_size(panel); i++) {
+   for (size_t i = 0; i < Panel_size(panel); i++) {
       Process* p = (Process*) Panel_get(panel, i);
       if (!p->tag && Process_isChildOf(p, ppid)) {
          tagAllChildren(panel, p);
@@ -145,7 +145,7 @@ static bool collapseIntoParent(Panel* panel) {
       return false;
 
    pid_t ppid = Process_getParentPid(p);
-   for (int i = 0; i < Panel_size(panel); i++) {
+   for (size_t i = 0; i < Panel_size(panel); i++) {
       Process* q = (Process*) Panel_get(panel, i);
       if (q->pid == ppid) {
          q->showChildren = false;
@@ -168,9 +168,9 @@ static Htop_Reaction actionSetSortColumn(State* st) {
    Panel* sortPanel = Panel_new(0, 0, 0, 0, Class(ListItem), true, FunctionBar_newEnterEsc("Sort   ", "Cancel "));
    Panel_setHeader(sortPanel, "Sort by");
    const ProcessField* fields = st->settings->fields;
-   for (int i = 0; fields[i]; i++) {
+   for (size_t i = 0; fields[i]; i++) {
       char* name = String_trim(Process_fields[fields[i]].name);
-      Panel_add(sortPanel, (Object*) ListItem_new(name, fields[i]));
+      Panel_add(sortPanel, (Object*) ListItem_new(name, CAST_INT(fields[i])));
       if (fields[i] == Settings_getActiveSortKey(st->settings))
          Panel_setSelected(sortPanel, i);
 
@@ -178,7 +178,7 @@ static Htop_Reaction actionSetSortColumn(State* st) {
    }
    const ListItem* field = (const ListItem*) Action_pickFromVector(st, sortPanel, 15, false);
    if (field) {
-      reaction |= Action_setSortKey(st->settings, field->key);
+      reaction |= Action_setSortKey(st->settings, (ProcessField)field->key);
    }
    Object_delete(sortPanel);
 
@@ -313,12 +313,12 @@ static Htop_Reaction actionSetAffinity(State* st) {
    if (!affinity1)
       return HTOP_OK;
 
-   int width;
+   unsigned int width;
    Panel* affinityPanel = AffinityPanel_new(st->pl, affinity1, &width);
    width += 1; /* we add a gap between the panels */
    Affinity_delete(affinity1);
 
-   const void* set = Action_pickFromVector(st, affinityPanel, width, true);
+   const void* set = Action_pickFromVector(st, affinityPanel, CAST_INT(width), true);
    if (set) {
       Affinity* affinity2 = AffinityPanel_getAffinity(affinityPanel, st->pl);
       bool ok = MainPanel_foreachProcess(st->mainPanel, Affinity_set, (Arg) { .v = affinity2 }, NULL);
@@ -375,7 +375,7 @@ Htop_Reaction Action_follow(State* st) {
 
 static Htop_Reaction actionSetup(State* st) {
    Action_runSetup(st);
-   int headerHeight = Header_calculateHeight(st->header);
+   int headerHeight = CAST_INT(Header_calculateHeight(st->header));
    Panel_move((Panel*)st->mainPanel, 0, headerHeight);
    Panel_resize((Panel*)st->mainPanel, COLS, LINES-headerHeight-1);
    return HTOP_REFRESH | HTOP_REDRAW_BAR | HTOP_UPDATE_PANELHDR;
@@ -497,7 +497,7 @@ static const struct {
    { .key = NULL, .info = NULL }
 };
 
-static inline void addattrstr( int attr, const char* str) {
+static inline void addattrstr(int attr, const char* str) {
    attrset(attr);
    addstr(str);
 }
@@ -607,7 +607,7 @@ static Htop_Reaction actionHelp(State* st) {
 }
 
 static Htop_Reaction actionUntagAll(State* st) {
-   for (int i = 0; i < Panel_size((Panel*)st->mainPanel); i++) {
+   for (size_t i = 0; i < Panel_size((Panel*)st->mainPanel); i++) {
       Process* p = (Process*) Panel_get((Panel*)st->mainPanel, i);
       p->tag = false;
    }

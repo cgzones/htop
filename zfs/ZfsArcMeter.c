@@ -19,18 +19,18 @@ static const int ZfsArcMeter_attributes[] = {
 };
 
 void ZfsArcMeter_readStats(Meter* this, const ZfsArcStats* stats) {
-   this->total = stats->max;
-   this->values[0] = stats->MFU;
-   this->values[1] = stats->MRU;
-   this->values[2] = stats->anon;
-   this->values[3] = stats->header;
-   this->values[4] = stats->other;
+   this->total     = (double)stats->max;
+   this->values[0] = (double)stats->MFU;
+   this->values[1] = (double)stats->MRU;
+   this->values[2] = (double)stats->anon;
+   this->values[3] = (double)stats->header;
+   this->values[4] = (double)stats->other;
 
    // "Hide" the last value so it can
    // only be accessed by index and is not
    // displayed by the Bar or Graph style
    this->curItems = 5;
-   this->values[5] = stats->size;
+   this->values[5] = (double)stats->size;
 }
 
 static void ZfsArcMeter_updateValues(Meter* this) {

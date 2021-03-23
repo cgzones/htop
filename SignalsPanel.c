@@ -21,8 +21,8 @@ in the source distribution for its full text.
 Panel* SignalsPanel_new() {
    Panel* this = Panel_new(1, 1, 1, 1, Class(ListItem), true, FunctionBar_newEnterEsc("Send   ", "Cancel "));
    const int defaultSignal = SIGTERM;
-   int defaultPosition = 15;
-   unsigned int i;
+   size_t defaultPosition = 15;
+   size_t i;
    for (i = 0; i < Platform_numberOfSignals; i++) {
       Panel_set(this, i, (Object*) ListItem_new(Platform_signals[i].name, Platform_signals[i].number));
       // signal 15 is not always the 15th signal in the table

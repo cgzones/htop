@@ -29,9 +29,9 @@ in the source distribution for its full text.
 #endif
 
 
-#define ColorIndex(i,j) ((7-(i))*8+(j))
+#define ColorIndex(i,j) ((short) ((7-(i))*8+(j)))
 
-#define ColorPair(i,j) COLOR_PAIR(ColorIndex(i,j))
+#define ColorPair(i,j) ((int) COLOR_PAIR(ColorIndex(i,j)))
 
 #define Black   COLOR_BLACK
 #define Red     COLOR_RED
@@ -663,9 +663,9 @@ static int CRT_colorSchemes[LAST_COLORSCHEME][LAST_COLORELEMENT] = {
 
 int CRT_cursorX = 0;
 
-int CRT_scrollHAmount = 5;
+unsigned int CRT_scrollHAmount = 5;
 
-int CRT_scrollWheelVAmount = 10;
+unsigned int CRT_scrollWheelVAmount = 10;
 
 ColorScheme CRT_colorScheme = COLORSCHEME_DEFAULT;
 
@@ -739,7 +739,7 @@ static void dumpStderr(void) {
             fprintf(stderr, ">>>>>>>>>> stderr output >>>>>>>>>>\n\n");
             header = true;
          }
-         (void)! write(STDERR_FILENO, buffer, res);
+         (void)! write(STDERR_FILENO, buffer, (size_t)res);
       }
    }
 
@@ -771,9 +771,9 @@ void CRT_init(const Settings* settings, bool allowUnicode) {
    CRT_colors = CRT_colorSchemes[settings->colorScheme];
    CRT_colorScheme = settings->colorScheme;
 
-   for (int i = 0; i < LAST_COLORELEMENT; i++) {
-      unsigned int color = CRT_colorSchemes[COLORSCHEME_DEFAULT][i];
-      CRT_colorSchemes[COLORSCHEME_BROKENGRAY][i] = color == (A_BOLD | ColorPairGrayBlack) ? ColorPair(White, Black) : color;
+   for (size_t i = 0; i < LAST_COLORELEMENT; i++) {
+      int color = CRT_colorSchemes[COLORSCHEME_DEFAULT][i];
+      CRT_colorSchemes[COLORSCHEME_BROKENGRAY][i] = color == ((int)A_BOLD | ColorPairGrayBlack) ? ColorPair(White, Black) : color;
    }
 
    halfdelay(*CRT_delay);
@@ -895,7 +895,7 @@ void CRT_enableDelay() {
    halfdelay(*CRT_delay);
 }
 
-void CRT_setColors(int colorScheme) {
+void CRT_setColors(ColorScheme colorScheme) {
    CRT_colorScheme = colorScheme;
 
    for (short int i = 0; i < 8; i++) {
@@ -963,7 +963,7 @@ void CRT_handleSIGSEGV(int signal) {
 
    void *backtraceArray[256];
 
-   size_t size = backtrace(backtraceArray, ARRAYSIZE(backtraceArray));
+   int size = backtrace(backtraceArray, ARRAYSIZE(backtraceArray));
    backtrace_symbols_fd(backtraceArray, size, 2);
    fprintf(stderr,
       "---\n"

@@ -524,6 +524,8 @@ AM_CFLAGS="\
  -Wall\
  -Wcast-align\
  -Wcast-qual\
+ -Wconversion\
+ -Wdouble-promotion\
  -Wextra\
  -Wfloat-equal\
  -Wformat=2\

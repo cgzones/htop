@@ -13,7 +13,7 @@
 
 static void CommandScreen_scan(InfoScreen* this) {
    Panel* panel = this->display;
-   int idx = MAXIMUM(Panel_getSelectedIndex(panel), 0);
+   size_t idx = MAXIMUM(Panel_getSelectedIndex(panel), 0);
    Panel_prune(panel);
 
    const char* p = Process_getCommand(this->process);
@@ -33,7 +33,7 @@ static void CommandScreen_scan(InfoScreen* this) {
 
          line_offset -= len;
          last_spc = -1;
-         memcpy(line, p - line_offset, line_offset + 1);
+         memcpy(line, p - line_offset, (size_t)line_offset + 1);
       }
    }
 

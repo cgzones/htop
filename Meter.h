@@ -49,7 +49,7 @@ typedef struct Meter_ Meter;
 
 typedef void(*Meter_Init)(Meter*);
 typedef void(*Meter_Done)(Meter*);
-typedef void(*Meter_UpdateMode)(Meter*, int);
+typedef void(*Meter_UpdateMode)(Meter*, MeterModeId);
 typedef void(*Meter_UpdateValues)(Meter*);
 typedef void(*Meter_Draw)(Meter*, int, int, int);
 
@@ -60,7 +60,7 @@ typedef struct MeterClass_ {
    const Meter_UpdateMode updateMode;
    const Meter_Draw draw;
    const Meter_UpdateValues updateValues;
-   const int defaultMode;
+   const MeterModeId defaultMode;
    const double total;
    const int* const attributes;
    const char* const name;                 /* internal name of the meter, must not contain any space */
@@ -94,11 +94,11 @@ struct Meter_ {
    Meter_Draw draw;
 
    char* caption;
-   int mode;
+   MeterModeId mode;
    unsigned int param;
    GraphData* drawData;
-   int h;
-   int columnWidthCount;      /*<< only used internally by the Header */
+   unsigned int h;
+   unsigned int columnWidthCount;      /*<< only used internally by the Header */
    const ProcessList* pl;
    uint8_t curItems;
    const int* curAttributes;
@@ -111,29 +111,20 @@ struct Meter_ {
 typedef struct MeterMode_ {
    Meter_Draw draw;
    const char* uiName;
-   int h;
+   unsigned int h;
 } MeterMode;
-
-typedef enum {
-   CUSTOM_METERMODE = 0,
-   BAR_METERMODE,
-   TEXT_METERMODE,
-   GRAPH_METERMODE,
-   LED_METERMODE,
-   LAST_METERMODE
-} MeterModeId;
 
 extern const MeterClass Meter_class;
 
 Meter* Meter_new(const ProcessList* pl, unsigned int param, const MeterClass* type);
 
-int Meter_humanUnit(char* buffer, unsigned long int value, size_t size);
+int Meter_humanUnit(char* buffer, double value, size_t size);
 
 void Meter_delete(Object* cast);
 
 void Meter_setCaption(Meter* this, const char* caption);
 
-void Meter_setMode(Meter* this, int modeIndex);
+void Meter_setMode(Meter* this, MeterModeId mode);
 
 ListItem* Meter_toListItem(const Meter* this, bool moving);
 

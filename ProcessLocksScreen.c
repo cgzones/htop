@@ -47,7 +47,7 @@ static inline void FileLocks_Data_clear(FileLocks_Data* data) {
 
 static void ProcessLocksScreen_scan(InfoScreen* this) {
    Panel* panel = this->display;
-   int idx = Panel_getSelectedIndex(panel);
+   size_t idx = Panel_getSelectedIndex(panel);
    Panel_prune(panel);
    FileLocks_ProcessData* pdata = Platform_getProcessLocks(((ProcessLocksScreen*)this)->pid);
    if (!pdata) {

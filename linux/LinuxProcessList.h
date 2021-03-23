@@ -48,10 +48,10 @@ typedef struct CPUData_ {
    unsigned long long int stealPeriod;
    unsigned long long int guestPeriod;
 
-   double frequency;
+   float frequency;
 
    #ifdef HAVE_SENSORS_SENSORS_H
-   double temperature;
+   float temperature;
    #endif
 } CPUData;
 

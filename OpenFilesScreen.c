@@ -134,7 +134,7 @@ static OpenFiles_ProcessData* OpenFilesScreen_getProcessData(pid_t pid) {
          break;
       }
 
-      unsigned char cmd = line[0];
+      char cmd = line[0];
       switch (cmd) {
       case 'f':  /* file descriptor */
       {
@@ -201,7 +201,7 @@ static void OpenFiles_Data_clear(OpenFiles_Data* data) {
 
 static void OpenFilesScreen_scan(InfoScreen* this) {
    Panel* panel = this->display;
-   int idx = Panel_getSelectedIndex(panel);
+   size_t idx = Panel_getSelectedIndex(panel);
    Panel_prune(panel);
    OpenFiles_ProcessData* pdata = OpenFilesScreen_getProcessData(((OpenFilesScreen*)this)->pid);
    if (pdata->error == 127) {

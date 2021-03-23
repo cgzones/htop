@@ -41,25 +41,26 @@ static void Settings_readMeterModes(Settings* this, const char* line, int column
    char* trim = String_trim(line);
    char** ids = String_split(trim, ' ', NULL);
    free(trim);
-   int len = 0;
-   for (int i = 0; ids[i]; i++) {
+   size_t len = 0;
+   for (size_t i = 0; ids[i]; i++) {
       len++;
    }
    this->columns[column].len = len;
-   int* modes = len ? xCalloc(len, sizeof(int)) : NULL;
-   for (int i = 0; i < len; i++) {
-      modes[i] = atoi(ids[i]);
+   MeterModeId* modes = len ? xCalloc(len, sizeof(MeterModeId)) : NULL;
+   for (size_t i = 0; i < len; i++) {
+      int id = atoi(ids[i]);
+      modes[i] = (id >= 0 && id < LAST_METERMODE) ? (MeterModeId)id : CUSTOM_METERMODE;
    }
    String_freeArray(ids);
    this->columns[column].modes = modes;
 }
 
 static void Settings_defaultMeters(Settings* this, unsigned int initialCpuCount) {
-   int sizes[] = { 3, 3 };
+   unsigned int sizes[] = { 3, 3 };
    if (initialCpuCount > 4 && initialCpuCount <= 128) {
       sizes[1]++;
    }
-   for (int i = 0; i < 2; i++) {
+   for (unsigned int i = 0; i < 2; i++) {
       this->columns[i].names = xCalloc(sizes[i] + 1, sizeof(char*));
       this->columns[i].modes = xCalloc(sizes[i], sizeof(int));
       this->columns[i].len = sizes[i];
@@ -116,7 +117,7 @@ static void readFields(ProcessField* fields, uint32_t* flags, const char* line) 
       // This "+1" is for compatibility with the older enum format.
       int id = atoi(ids[i]) + 1;
       if (id > 0 && id < LAST_PROCESSFIELD && Process_fields[id].name) {
-         fields[j] = id;
+         fields[j] = (ProcessField)id;
          *flags |= Process_fields[id].flags;
          j++;
       }
@@ -144,15 +145,18 @@ static bool Settings_read(Settings* this, const char* fileName, unsigned int ini
          String_freeArray(option);
          continue;
       }
+      int n;
       if (String_eq(option[0], "fields")) {
          readFields(this->fields, &(this->flags), option[1]);
          didReadFields = true;
       } else if (String_eq(option[0], "sort_key")) {
          // This "+1" is for compatibility with the older enum format.
-         this->sortKey = atoi(option[1]) + 1;
+         n = atoi(option[1]) + 1;
+         this->sortKey = (n >= 0 && n < LAST_PROCESSFIELD) ? (ProcessField)n : NULL_PROCESSFIELD;
       } else if (String_eq(option[0], "tree_sort_key")) {
          // This "+1" is for compatibility with the older enum format.
-         this->treeSortKey = atoi(option[1]) + 1;
+         n = atoi(option[1]) + 1;
+         this->treeSortKey = (n >= 0 && n < LAST_PROCESSFIELD) ? (ProcessField)n : NULL_PROCESSFIELD;
       } else if (String_eq(option[0], "sort_direction")) {
          this->direction = atoi(option[1]);
       } else if (String_eq(option[0], "tree_sort_direction")) {
@@ -218,10 +222,8 @@ static bool Settings_read(Settings* this, const char* fileName, unsigned int ini
       } else if (String_eq(option[0], "delay")) {
          this->delay = CLAMP(atoi(option[1]), 1, 255);
       } else if (String_eq(option[0], "color_scheme")) {
-         this->colorScheme = atoi(option[1]);
-         if (this->colorScheme < 0 || this->colorScheme >= LAST_COLORSCHEME) {
-            this->colorScheme = 0;
-         }
+         n = atoi(option[1]);
+         this->colorScheme = (n >= 0 && n < LAST_COLORSCHEME) ? (ColorScheme)n : COLORSCHEME_DEFAULT;
       } else if (String_eq(option[0], "enable_mouse")) {
          this->enableMouse = atoi(option[1]);
       } else if (String_eq(option[0], "left_meters")) {
@@ -263,18 +265,18 @@ static void writeFields(FILE* fd, const ProcessField* fields, const char* name) 
    fprintf(fd, "\n");
 }
 
-static void writeMeters(const Settings* this, FILE* fd, int column) {
+static void writeMeters(const Settings* this, FILE* fd, unsigned int column) {
    const char* sep = "";
-   for (int i = 0; i < this->columns[column].len; i++) {
+   for (size_t i = 0; i < this->columns[column].len; i++) {
       fprintf(fd, "%s%s", sep, this->columns[column].names[i]);
       sep = " ";
    }
    fprintf(fd, "\n");
 }
 
-static void writeMeterModes(const Settings* this, FILE* fd, int column) {
+static void writeMeterModes(const Settings* this, FILE* fd, unsigned int column) {
    const char* sep = "";
-   for (int i = 0; i < this->columns[column].len; i++) {
+   for (size_t i = 0; i < this->columns[column].len; i++) {
       fprintf(fd, "%s%d", sep, this->columns[column].modes[i]);
       sep = " ";
    }
@@ -422,7 +424,7 @@ Settings* Settings_new(unsigned int initialCpuCount) {
          legacyDotfile = NULL;
       }
    }
-   this->colorScheme = 0;
+   this->colorScheme = COLORSCHEME_DEFAULT;
    this->enableMouse = true;
    this->changed = false;
    this->delay = DEFAULT_DELAY;

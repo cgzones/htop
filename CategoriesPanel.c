@@ -66,7 +66,7 @@ static HandlerResult CategoriesPanel_eventHandler(Panel* super, int ch) {
 
    HandlerResult result = IGNORED;
 
-   int selected = Panel_getSelectedIndex(super);
+   size_t selected = Panel_getSelectedIndex(super);
    switch (ch) {
       case EVENT_SET_SELECTED:
          result = HANDLED;
@@ -79,7 +79,7 @@ static HandlerResult CategoriesPanel_eventHandler(Panel* super, int ch) {
       case KEY_PPAGE:
       case KEY_HOME:
       case KEY_END: {
-         int previous = selected;
+         size_t previous = selected;
          Panel_onKey(super, ch);
          selected = Panel_getSelectedIndex(super);
          if (previous != selected)
@@ -94,8 +94,8 @@ static HandlerResult CategoriesPanel_eventHandler(Panel* super, int ch) {
          break;
    }
    if (result == HANDLED) {
-      int size = ScreenManager_size(this->scr);
-      for (int i = 1; i < size; i++)
+      size_t size = ScreenManager_size(this->scr);
+      for (size_t i = 1; i < size; i++)
          ScreenManager_remove(this->scr, 1);
 
       switch (selected) {

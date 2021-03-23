@@ -21,7 +21,7 @@ enum {
 #define IOPRIO_WHO_PROCESS 1
 
 #define IOPRIO_CLASS_SHIFT (13)
-#define IOPRIO_PRIO_MASK ((1UL << IOPRIO_CLASS_SHIFT) - 1)
+#define IOPRIO_PRIO_MASK ((1 << IOPRIO_CLASS_SHIFT) - 1)
 
 #define IOPriority_class(ioprio_) ((int) ((ioprio_) >> IOPRIO_CLASS_SHIFT) )
 #define IOPriority_data(ioprio_) ((int) ((ioprio_) & IOPRIO_PRIO_MASK) )

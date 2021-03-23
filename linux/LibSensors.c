@@ -122,7 +122,7 @@ static int tempDriverPriority(const sensors_chip_name* chip) {
 
 void LibSensors_getCPUTemperatures(CPUData* cpus, unsigned int cpuCount) {
    assert(cpuCount > 0 && cpuCount < 16384);
-   double data[cpuCount + 1];
+   float data[cpuCount + 1];
    for (size_t i = 0; i < cpuCount + 1; i++)
       data[i] = NAN;
 
@@ -180,11 +180,11 @@ void LibSensors_getCPUTemperatures(CPUData* cpus, unsigned int cpuCount) {
 
          /* If already set, e.g. Ryzen reporting platform temperature for each die, use the bigger one */
          if (isnan(data[tempID])) {
-            data[tempID] = temp;
+            data[tempID] = (float)temp;
             if (tempID > 0)
                coreTempCount++;
          } else {
-            data[tempID] = MAXIMUM(data[tempID], temp);
+            data[tempID] = MAXIMUM(data[tempID], (float)temp);
          }
       }
    }
@@ -209,7 +209,7 @@ void LibSensors_getCPUTemperatures(CPUData* cpus, unsigned int cpuCount) {
 
    /* No package temperature - set to max core temperature */
    if (isnan(data[0]) && coreTempCount != 0) {
-      double maxTemp = NAN;
+      float maxTemp = NAN;
       for (unsigned int i = 1; i <= cpuCount; i++) {
          if (isnan(data[i]))
             continue;

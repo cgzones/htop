@@ -28,7 +28,7 @@ static void BatteryMeter_updateValues(Meter* this) {
    Platform_getBattery(&percent, &isOnAC);
 
    if (isnan(percent)) {
-      this->values[0] = NAN;
+      this->values[0] = DNAN;
       xSnprintf(this->txtBuffer, sizeof(this->txtBuffer), "N/A");
       return;
    }

@@ -23,10 +23,6 @@ in the source distribution for its full text.
 #include "XUtils.h"
 
 
-/* semi-global */
-int pageSize;
-int pageSizeKB;
-
 /* Used to identify kernel threads in Comm and Exe columns */
 static const char *const kthreadID = "KTHREAD";
 
@@ -143,7 +139,7 @@ effort class. The priority within the best effort class will  be
 dynamically  derived  from  the  cpu  nice level of the process:
 io_priority = (cpu_nice + 20) / 5. -- From ionice(1) man page
 */
-static int LinuxProcess_effectiveIOPriority(const LinuxProcess* this) {
+static long LinuxProcess_effectiveIOPriority(const LinuxProcess* this) {
    if (IOPriority_class(this->ioPriority) == IOPRIO_CLASS_NONE) {
       return IOPriority_tuple(IOPRIO_CLASS_BE, (this->super.nice + 20) / 5);
    }
@@ -160,7 +156,7 @@ IOPriority LinuxProcess_updateIOPriority(LinuxProcess* this) {
    IOPriority ioprio = 0;
 // Other OSes masquerading as Linux (NetBSD?) don't have this syscall
 #ifdef SYS_ioprio_get
-   ioprio = syscall(SYS_ioprio_get, IOPRIO_WHO_PROCESS, this->super.pid);
+   ioprio = CAST_INT(syscall(SYS_ioprio_get, IOPRIO_WHO_PROCESS, this->super.pid));
 #endif
    this->ioPriority = ioprio;
    return ioprio;
@@ -175,11 +171,11 @@ bool LinuxProcess_setIOPriority(Process* this, Arg ioprio) {
 }
 
 #ifdef HAVE_DELAYACCT
-static void LinuxProcess_printDelay(float delay_percent, char* buffer, int n) {
+static void LinuxProcess_printDelay(float delay_percent, char* buffer, size_t n) {
    if (isnan(delay_percent)) {
       xSnprintf(buffer, n, " N/A  ");
    } else {
-      xSnprintf(buffer, n, "%4.1f  ", delay_percent);
+      xSnprintf(buffer, n, "%4.1f  ", (double)delay_percent);
    }
 }
 #endif
@@ -193,7 +189,7 @@ colorized for better readability, and it is implicit that only upto
 */
 #define TASK_COMM_LEN 16
 
-static bool findCommInCmdline(const char *comm, const char *cmdline, int cmdlineBasenameOffset, int *pCommStart, int *pCommEnd) {
+static bool findCommInCmdline(const char *comm, const char *cmdline, size_t cmdlineBasenameOffset, size_t *pCommStart, size_t *pCommEnd) {
    /* Try to find procComm in tokenized cmdline - this might in rare cases
     * mis-identify a string or fail, if comm or cmdline had been unsuitably
     * modified by the process */
@@ -201,21 +197,18 @@ static bool findCommInCmdline(const char *comm, const char *cmdline, int cmdline
    size_t tokenLen;
    const size_t commLen = strlen(comm);
 
-   if (cmdlineBasenameOffset < 0)
-      return false;
-
    for (const char *token = cmdline + cmdlineBasenameOffset; *token; ) {
       for (tokenBase = token; *token && *token != '\n'; ++token) {
          if (*token == '/') {
             tokenBase = token + 1;
          }
       }
-      tokenLen = token - tokenBase;
+      tokenLen = CAST_SIZET(token - tokenBase);
 
       if ((tokenLen == commLen || (tokenLen > commLen && commLen == (TASK_COMM_LEN - 1))) &&
           strncmp(tokenBase, comm, commLen) == 0) {
-         *pCommStart = tokenBase - cmdline;
-         *pCommEnd = token - cmdline;
+         *pCommStart = CAST_SIZET(tokenBase - cmdline);
+         *pCommEnd = CAST_SIZET(token - cmdline);
          return true;
       }
       if (*token) {
@@ -227,8 +220,8 @@ static bool findCommInCmdline(const char *comm, const char *cmdline, int cmdline
    return false;
 }
 
-static int matchCmdlinePrefixWithExeSuffix(const char *cmdline, int cmdlineBaseOffset, const char *exe, int exeBaseOffset, int exeBaseLen) {
-   int matchLen;       /* matching length to be returned */
+static size_t matchCmdlinePrefixWithExeSuffix(const char *cmdline, size_t cmdlineBaseOffset, const char *exe, size_t exeBaseOffset, size_t exeBaseLen) {
+   size_t matchLen;    /* matching length to be returned */
    char delim;         /* delimiter following basename */
 
    /* cmdline prefix is an absolute path: it must match whole exe. */
@@ -263,9 +256,9 @@ static int matchCmdlinePrefixWithExeSuffix(const char *cmdline, int cmdlineBaseO
           strncmp(cmdline + cmdlineBaseOffset, exe + exeBaseOffset, exeBaseLen) == 0) {
          delim = cmdline[matchLen];
          if (delim == 0 || delim == '\n' || delim == ' ') {
-            int i, j;
+            ssize_t i, j;
             /* reverse match the cmdline prefix and exe suffix */
-            for (i = cmdlineBaseOffset - 1, j = exeBaseOffset - 1;
+            for (i = (ssize_t)cmdlineBaseOffset - 1, j = (ssize_t)exeBaseOffset - 1;
                  i >= 0 && cmdline[i] == exe[j]; --i, --j)
                ;
             /* full match, with exe suffix being a valid relative path */
@@ -276,7 +269,8 @@ static int matchCmdlinePrefixWithExeSuffix(const char *cmdline, int cmdlineBaseO
       }
       /* Try to find the previous potential cmdlineBaseOffset - it would be
        * preceded by '/' or nothing, and delimited by ' ' or '\n' */
-      for (delimFound = false, cmdlineBaseOffset -= 2; cmdlineBaseOffset > 0; --cmdlineBaseOffset) {
+      cmdlineBaseOffset = (cmdlineBaseOffset > 2) ? (cmdlineBaseOffset - 2) : 0;
+      for (delimFound = false; cmdlineBaseOffset > 0; --cmdlineBaseOffset) {
          if (delimFound) {
             if (cmdline[cmdlineBaseOffset - 1] == '/') {
                break;
@@ -331,13 +325,13 @@ void LinuxProcess_makeCommandStr(Process* this) {
    /* The field separtor "│" has been chosen such that it will not match any
     * valid string used for searching or filtering */
    const char *SEPARATOR = CRT_treeStr[TREE_STR_VERT];
-   const int SEPARATOR_LEN = strlen(SEPARATOR);
+   const size_t SEPARATOR_LEN = strlen(SEPARATOR);
 
    /* Check for any changed fields since we last built this string */
    if (mc->cmdlineChanged || mc->commChanged || mc->exeChanged) {
       free(mc->str);
       /* Accommodate the column text, two field separators and terminating NUL */
-      mc->str = xCalloc(1, mc->maxLen + 2*SEPARATOR_LEN + 1);
+      mc->str = xCalloc(1, mc->maxLen_ + 2*SEPARATOR_LEN + 1);
    }
 
    /* Preserve the settings used in this run */
@@ -356,10 +350,10 @@ void LinuxProcess_makeCommandStr(Process* this) {
    mc->sep2 = 0;
 
    /* Clear any highlighting locations */
-   mc->baseStart = 0;
-   mc->baseEnd = 0;
-   mc->commStart = 0;
-   mc->commEnd = 0;
+   mc->baseStart_ = 0;
+   mc->baseEnd_ = 0;
+   mc->commStart_ = 0;
+   mc->commEnd_ = 0;
 
    const char *cmdline = this->comm;
    const char *procExe = lp->procExe;
@@ -368,8 +362,8 @@ void LinuxProcess_makeCommandStr(Process* this) {
    char *strStart = mc->str;
    char *str = strStart;
 
-   int cmdlineBasenameOffset = lp->procCmdlineBasenameOffset;
-   int cmdlineBasenameEnd = lp->procCmdlineBasenameEnd;
+   size_t cmdlineBasenameOffset = lp->procCmdlineBasenameOffset_;
+   size_t cmdlineBasenameEnd = lp->procCmdlineBasenameEnd_;
 
    if (!cmdline) {
       cmdlineBasenameOffset = 0;
@@ -377,75 +371,73 @@ void LinuxProcess_makeCommandStr(Process* this) {
       cmdline = "(zombie)";
    }
 
-   assert(cmdlineBasenameOffset >= 0);
-   assert(cmdlineBasenameOffset <= (int)strlen(cmdline));
+   assert(cmdlineBasenameOffset <= strlen(cmdline));
 
    if (!showMergedCommand || !procExe || !procComm) {    /* fall back to cmdline */
       if (showMergedCommand && !procExe && procComm && strlen(procComm)) {   /* Prefix column with comm */
          if (strncmp(cmdline + cmdlineBasenameOffset, procComm, MINIMUM(TASK_COMM_LEN - 1, strlen(procComm))) != 0) {
-            mc->commStart = 0;
-            mc->commEnd = strlen(procComm);
+            mc->commStart_ = 0;
+            mc->commEnd_ = strlen(procComm);
 
             str = stpcpy(str, procComm);
 
-            mc->sep1 = str - strStart;
+            mc->sep1 = CAST_SIZET(str - strStart);
             str = stpcpy(str, SEPARATOR);
          }
       }
 
       if (showProgramPath) {
          (void) stpcpyWithNewlineConversion(str, cmdline);
-         mc->baseStart = cmdlineBasenameOffset;
-         mc->baseEnd = cmdlineBasenameEnd;
+         mc->baseStart_ = cmdlineBasenameOffset;
+         mc->baseEnd_ = cmdlineBasenameEnd;
       } else {
          (void) stpcpyWithNewlineConversion(str, cmdline + cmdlineBasenameOffset);
-         mc->baseStart = 0;
-         mc->baseEnd = cmdlineBasenameEnd - cmdlineBasenameOffset;
+         mc->baseStart_ = 0;
+         mc->baseEnd_ = cmdlineBasenameEnd - cmdlineBasenameOffset;
       }
 
       if (mc->sep1) {
-         mc->baseStart += str - strStart - SEPARATOR_LEN + 1;
-         mc->baseEnd += str - strStart - SEPARATOR_LEN + 1;
+         mc->baseStart_ += CAST_SIZET(str - strStart) - SEPARATOR_LEN + 1;
+         mc->baseEnd_ += CAST_SIZET(str - strStart) - SEPARATOR_LEN + 1;
       }
 
       return;
    }
 
-   int exeLen = lp->procExeLen;
-   int exeBasenameOffset = lp->procExeBasenameOffset;
-   int exeBasenameLen = exeLen - exeBasenameOffset;
+   size_t exeLen = lp->procExeLen_;
+   size_t exeBasenameOffset = lp->procExeBasenameOffset_;
+   size_t exeBasenameLen = exeLen - exeBasenameOffset;
 
-   assert(exeBasenameOffset >= 0);
-   assert(exeBasenameOffset <= (int)strlen(procExe));
+   assert(exeBasenameOffset <= strlen(procExe));
 
    /* Start with copying exe */
    if (showProgramPath) {
       str = stpcpy(str, procExe);
-      mc->baseStart = exeBasenameOffset;
-      mc->baseEnd = exeLen;
+      mc->baseStart_ = exeBasenameOffset;
+      mc->baseEnd_ = exeLen;
    } else {
       str = stpcpy(str, procExe + exeBasenameOffset);
-      mc->baseStart = 0;
-      mc->baseEnd = exeBasenameLen;
+      mc->baseStart_ = 0;
+      mc->baseEnd_ = exeBasenameLen;
    }
 
    mc->sep1 = 0;
    mc->sep2 = 0;
 
-   int commStart = 0;
-   int commEnd = 0;
+   size_t commStart = 0;
+   size_t commEnd = 0;
    bool commInCmdline = false;
 
    /* Try to match procComm with procExe's basename: This is reliable (predictable) */
    if (strncmp(procExe + exeBasenameOffset, procComm, TASK_COMM_LEN - 1) == 0) {
-      commStart = mc->baseStart;
-      commEnd = mc->baseEnd;
+      commStart = mc->baseStart_;
+      commEnd = mc->baseEnd_;
    } else if (searchCommInCmdline) {
       /* commStart/commEnd will be adjusted later along with cmdline */
       commInCmdline = findCommInCmdline(procComm, cmdline, cmdlineBasenameOffset, &commStart, &commEnd);
    }
 
-   int matchLen = matchCmdlinePrefixWithExeSuffix(cmdline, cmdlineBasenameOffset, procExe, exeBasenameOffset, exeBasenameLen);
+   size_t matchLen = matchCmdlinePrefixWithExeSuffix(cmdline, cmdlineBasenameOffset, procExe, exeBasenameOffset, exeBasenameLen);
 
    /* Note: commStart, commEnd are offsets into RichString. But the multibyte
     * separator (with size SEPARATOR_LEN) has size 1 in RichString. The offset
@@ -458,28 +450,28 @@ void LinuxProcess_makeCommandStr(Process* this) {
          cmdline += matchLen;
 
          if (commInCmdline) {
-            commStart += str - strStart - matchLen;
-            commEnd += str - strStart - matchLen;
+            commStart += CAST_SIZET(str - strStart) - matchLen;
+            commEnd += CAST_SIZET(str - strStart) - matchLen;
          }
       } else {
          /* cmdline will be a separate field */
-         mc->sep1 = str - strStart;
+         mc->sep1 = CAST_SIZET(str - strStart);
          str = stpcpy(str, SEPARATOR);
 
          if (commInCmdline) {
-            commStart += str - strStart - SEPARATOR_LEN + 1;
-            commEnd += str - strStart - SEPARATOR_LEN + 1;
+            commStart += CAST_SIZET(str - strStart) - SEPARATOR_LEN + 1;
+            commEnd += CAST_SIZET(str - strStart) - SEPARATOR_LEN + 1;
          }
       }
 
       mc->separateComm = false;  /* procComm merged */
    } else {
-      mc->sep1 = str - strStart;
+      mc->sep1 = CAST_SIZET(str - strStart);
       str = stpcpy(str, SEPARATOR);
 
-      commStart = str - strStart - SEPARATOR_LEN + 1;
+      commStart = CAST_SIZET(str - strStart) - SEPARATOR_LEN + 1;
       str = stpcpy(str, procComm);
-      commEnd = str - strStart - SEPARATOR_LEN + 1;   /* or commStart + strlen(procComm) */
+      commEnd = CAST_SIZET(str - strStart) - SEPARATOR_LEN + 1;   /* or commStart + strlen(procComm) */
 
       mc->unmatchedExe = !matchLen;
 
@@ -490,7 +482,7 @@ void LinuxProcess_makeCommandStr(Process* this) {
       }
 
       if (*cmdline) {
-         mc->sep2 = str - strStart - SEPARATOR_LEN + 1;
+         mc->sep2 = CAST_SIZET(str - strStart) - SEPARATOR_LEN + 1;
          str = stpcpy(str, SEPARATOR);
       }
 
@@ -502,20 +494,20 @@ void LinuxProcess_makeCommandStr(Process* this) {
       (void) stpcpyWithNewlineConversion(str, cmdline);
    }
 
-   mc->commStart = commStart;
-   mc->commEnd = commEnd;
+   mc->commStart_ = commStart;
+   mc->commEnd_ = commEnd;
 }
 
 static void LinuxProcess_writeCommand(const Process* this, int attr, int baseAttr, RichString* str) {
    const LinuxProcess *lp = (const LinuxProcess *)this;
    const LinuxProcessMergedCommand *mc = &lp->mergedCommand;
 
-   int strStart = RichString_size(str);
+   size_t strStart = RichString_size(str);
 
-   int baseStart = strStart + lp->mergedCommand.baseStart;
-   int baseEnd = strStart + lp->mergedCommand.baseEnd;
-   int commStart = strStart + lp->mergedCommand.commStart;
-   int commEnd = strStart + lp->mergedCommand.commEnd;
+   size_t baseStart = strStart + lp->mergedCommand.baseStart_;
+   size_t baseEnd = strStart + lp->mergedCommand.baseEnd_;
+   size_t commStart = strStart + lp->mergedCommand.commStart_;
+   size_t commEnd = strStart + lp->mergedCommand.commEnd_;
 
    int commAttr = CRT_colors[Process_isUserlandThread(this) ? PROCESS_THREAD_COMM : PROCESS_COMM];
 
@@ -526,18 +518,18 @@ static void LinuxProcess_writeCommand(const Process* this, int attr, int baseAtt
 
    RichString_appendWide(str, attr, lp->mergedCommand.str);
 
-   if (lp->mergedCommand.commEnd) {
+   if (lp->mergedCommand.commEnd_) {
       if (!lp->mergedCommand.separateComm && commStart == baseStart && highlightBaseName) {
          /* If it was matched with procExe's basename, make it bold if needed */
          if (commEnd > baseEnd) {
-            RichString_setAttrn(str, A_BOLD | baseAttr, baseStart, baseEnd - baseStart);
-            RichString_setAttrn(str, A_BOLD | commAttr, baseEnd, commEnd - baseEnd);
+            RichString_setAttrn(str, (int)A_BOLD | baseAttr, baseStart, baseEnd - baseStart);
+            RichString_setAttrn(str, (int)A_BOLD | commAttr, baseEnd, commEnd - baseEnd);
          } else if (commEnd < baseEnd) {
-            RichString_setAttrn(str, A_BOLD | commAttr, commStart, commEnd - commStart);
-            RichString_setAttrn(str, A_BOLD | baseAttr, commEnd, baseEnd - commEnd);
+            RichString_setAttrn(str, (int)A_BOLD | commAttr, commStart, commEnd - commStart);
+            RichString_setAttrn(str, (int)A_BOLD | baseAttr, commEnd, baseEnd - commEnd);
          } else {
             // Actually should be highlighted commAttr, but marked baseAttr to reduce visual noise
-            RichString_setAttrn(str, A_BOLD | baseAttr, commStart, commEnd - commStart);
+            RichString_setAttrn(str, (int)A_BOLD | baseAttr, commStart, commEnd - commStart);
          }
 
          baseStart = baseEnd;
@@ -556,7 +548,7 @@ static void LinuxProcess_writeCommand(const Process* this, int attr, int baseAtt
       RichString_setAttrn(str, CRT_colors[FAILED_READ], strStart + mc->sep2, 1);
 }
 
-static void LinuxProcess_writeCommandField(const Process *this, RichString *str, char *buffer, int n, int attr) {
+static void LinuxProcess_writeCommandField(const Process *this, RichString *str, char *buffer, size_t n, int attr) {
    /* This code is from Process_writeField for COMM, but we invoke
     * LinuxProcess_writeCommand to display
     * /proc/pid/exe (or its basename)│/proc/pid/comm│/proc/pid/cmdline */
@@ -569,32 +561,32 @@ static void LinuxProcess_writeCommandField(const Process *this, RichString *str,
       LinuxProcess_writeCommand(this, attr, baseattr, str);
    } else {
       char* buf = buffer;
-      int maxIndent = 0;
+      size_t maxIndent = 0;
       bool lastItem = (this->indent < 0);
-      int indent = (this->indent < 0 ? -this->indent : this->indent);
-      int vertLen = strlen(CRT_treeStr[TREE_STR_VERT]);
+      unsigned int indent = CAST_UNSIGNED(this->indent < 0 ? -this->indent : this->indent);
+      size_t vertLen = strlen(CRT_treeStr[TREE_STR_VERT]);
 
-      for (int i = 0; i < 32; i++) {
+      for (unsigned int i = 0; i < 32; i++) {
          if (indent & (1U << i)) {
             maxIndent = i+1;
          }
       }
-      for (int i = 0; i < maxIndent - 1; i++) {
+      for (size_t i = 0; i < maxIndent - 1; i++) {
          if (indent & (1 << i)) {
-            if (buf - buffer + (vertLen + 3) > n) {
+            if (CAST_SIZET(buf - buffer) + (vertLen + 3) > n) {
                break;
             }
             buf = stpcpy(buf, CRT_treeStr[TREE_STR_VERT]);
             buf = stpcpy(buf, "  ");
          } else {
-            if (buf - buffer + 4 > n) {
+            if (CAST_SIZET(buf - buffer) + 4 > n) {
                break;
             }
             buf = stpcpy(buf, "   ");
          }
       }
 
-      n -= (buf - buffer);
+      n -= CAST_SIZET(buf - buffer);
       const char* draw = CRT_treeStr[lastItem ? TREE_STR_BEND : TREE_STR_RTEE];
       xSnprintf(buf, n, "%s%s ", draw, this->showChildren ? CRT_treeStr[TREE_STR_SHUT] : CRT_treeStr[TREE_STR_OPEN] );
       RichString_appendWide(str, CRT_colors[PROCESS_TREE], buffer);
@@ -606,27 +598,27 @@ static void LinuxProcess_writeField(const Process* this, RichString* str, Proces
    const LinuxProcess* lp = (const LinuxProcess*) this;
    bool coloring = this->settings->highlightMegabytes;
    char buffer[256]; buffer[255] = '\0';
+   size_t n = sizeof(buffer);
    int attr = CRT_colors[DEFAULT_COLOR];
-   size_t n = sizeof(buffer) - 1;
    switch (field) {
    case CMINFLT: Process_colorNumber(str, lp->cminflt, coloring); return;
    case CMAJFLT: Process_colorNumber(str, lp->cmajflt, coloring); return;
-   case M_DRS: Process_humanNumber(str, lp->m_drs * pageSizeKB, coloring); return;
-   case M_DT: Process_humanNumber(str, lp->m_dt * pageSizeKB, coloring); return;
+   case M_DRS: Process_humanNumber(str, (unsigned long long int)lp->m_drs, coloring); return; //TODO: check scale
+   case M_DT: Process_humanNumber(str, (unsigned long long int)lp->m_dt, coloring); return; //TODO: check scale
    case M_LRS:
       if (lp->m_lrs) {
-         Process_humanNumber(str, lp->m_lrs * pageSizeKB, coloring);
+         Process_humanNumber(str, (unsigned long long int)lp->m_lrs, coloring); //TODO; check scale
          return;
       }
 
       attr = CRT_colors[PROCESS_SHADOW];
       xSnprintf(buffer, n, "  N/A ");
       break;
-   case M_TRS: Process_humanNumber(str, lp->m_trs * pageSizeKB, coloring); return;
-   case M_SHARE: Process_humanNumber(str, lp->m_share * pageSizeKB, coloring); return;
-   case M_PSS: Process_humanNumber(str, lp->m_pss, coloring); return;
-   case M_SWAP: Process_humanNumber(str, lp->m_swap, coloring); return;
-   case M_PSSWP: Process_humanNumber(str, lp->m_psswp, coloring); return;
+   case M_TRS: Process_humanNumber(str, (unsigned long long int)lp->m_trs, coloring); return; //TODO; check scale
+   case M_SHARE: Process_humanNumber(str, (unsigned long long int)lp->m_share, coloring); return; //TODO; check scale
+   case M_PSS: Process_humanNumber(str, (unsigned long long int)lp->m_pss, coloring); return; //TODO; check scale
+   case M_SWAP: Process_humanNumber(str, (unsigned long long int)lp->m_swap, coloring); return; //TODO; check scale
+   case M_PSSWP: Process_humanNumber(str, (unsigned long long int)lp->m_psswp, coloring); return; //TODO; check scale
    case UTIME: Process_printTime(str, lp->utime); return;
    case STIME: Process_printTime(str, lp->stime); return;
    case CUTIME: Process_printTime(str, lp->cutime); return;
@@ -649,7 +641,7 @@ static void LinuxProcess_writeField(const Process* this, RichString* str, Proces
       else if (!isnan(lp->io_rate_write_bps))
          totalRate = lp->io_rate_write_bps;
       else
-         totalRate = NAN;
+         totalRate = DNAN;
       Process_outputRate(str, buffer, n, totalRate, coloring); return;
    }
    #ifdef HAVE_OPENVZ
@@ -686,7 +678,7 @@ static void LinuxProcess_writeField(const Process* this, RichString* str, Proces
    #endif
    case CTXT:
       if (lp->ctxt_diff > 1000) {
-         attr |= A_BOLD;
+         attr |= (int)A_BOLD;
       }
       xSnprintf(buffer, n, "%5lu ", lp->ctxt_diff);
       break;
@@ -718,7 +710,7 @@ static void LinuxProcess_writeField(const Process* this, RichString* str, Proces
          attr = CRT_colors[Process_isUserlandThread(this) ? PROCESS_THREAD_BASENAME : PROCESS_BASENAME];
          if (lp->procExeDeleted)
             attr = CRT_colors[FAILED_READ];
-         procExe = lp->procExe + lp->procExeBasenameOffset;
+         procExe = lp->procExe + lp->procExeBasenameOffset_;
       } else {
          attr = CRT_colors[PROCESS_SHADOW];
          procExe = Process_isKernelThread(lp) ? kthreadID : "N/A";
@@ -837,8 +829,8 @@ static int LinuxProcess_compareByKey(const Process* v1, const Process* v2, Proce
       return strcmp(comm1, comm2);
    }
    case PROC_EXE: {
-      const char *exe1 = p1->procExe ? (p1->procExe + p1->procExeBasenameOffset) : (Process_isKernelThread(p1) ? kthreadID : "");
-      const char *exe2 = p2->procExe ? (p2->procExe + p2->procExeBasenameOffset) : (Process_isKernelThread(p2) ? kthreadID : "");
+      const char *exe1 = p1->procExe ? (p1->procExe + p1->procExeBasenameOffset_) : (Process_isKernelThread(p1) ? kthreadID : "");
+      const char *exe2 = p2->procExe ? (p2->procExe + p2->procExeBasenameOffset_) : (Process_isKernelThread(p2) ? kthreadID : "");
       return strcmp(exe1, exe2);
    }
    case CWD:

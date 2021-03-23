@@ -2,6 +2,8 @@
 #define HEADER_Macros
 
 #include <assert.h> // IWYU pragma: keep
+#include <limits.h>
+
 
 #ifndef MINIMUM
 #define MINIMUM(a, b)                  ((a) < (b) ? (a) : (b))
@@ -29,6 +31,24 @@
 
 #ifndef SPACESHIP_DEFAULTSTR
 #define SPACESHIP_DEFAULTSTR(a, b, s)  strcmp((a) ? (a) : (s), (b) ? (b) : (s))
+#endif
+
+#ifndef CAST_INT
+//#define CAST_INT(x)               (assert((x) <= INT_MAX), assert((x) >= 0 || (uintmax_t)(-(x)) <= (uintmax_t)(-(INT_MIN))), ((int)(x)))
+#define CAST_INT(x)               (assert((uintmax_t)(int)(x) == (uintmax_t)(x)), (int)(x))
+#endif
+
+#ifndef CAST_UNSIGNED
+//#define CAST_UNSIGNED(x)          (assert((x) >= 0), assert((uintmax_t)(x) <= UINT_MAX), ((unsigned int)(x)))
+#define CAST_UNSIGNED(x)          (assert((uintmax_t)(unsigned int)(x) == (uintmax_t)(x)), (unsigned int)(x))
+#endif
+
+#ifndef CAST_SIZET
+#define CAST_SIZET(x)             (assert((x) >= 0), assert((uintmax_t)(x) <= SIZE_MAX), ((size_t)(x)))
+#endif
+
+#ifndef DNAN
+#define DNAN                      ((double)NAN)
 #endif
 
 #ifdef  __GNUC__  // defined by GCC and Clang

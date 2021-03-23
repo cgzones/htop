@@ -103,7 +103,7 @@ typedef struct Process_ {
    char* comm;
 
    /* Offset in comm of the process basename */
-   int basenameOffset;
+   size_t basenameOffset;
 
    /* CPU number last executed on */
    int processor;
@@ -130,10 +130,10 @@ typedef struct Process_ {
    char starttime_show[8];
 
    /* Total program size (in kilobytes) */
-   long m_virt;
+   unsigned long m_virt;
 
    /* Resident set size (in kilobytes) */
-   long m_resident;
+   unsigned long m_resident;
 
    /* Number of minor faults the process has made which have not required loading a memory page from disk */
    unsigned long int minflt;
@@ -267,7 +267,7 @@ void Process_fillStarttimeBuffer(Process* this);
 /* Takes number in bare units (base 1024) */
 void Process_outputRate(RichString* str, char* buffer, size_t n, double rate, int coloring);
 
-void Process_printLeftAlignedField(RichString* str, int attr, const char* content, unsigned int width);
+void Process_printLeftAlignedField(RichString* str, int attr, const char* content, size_t width);
 
 void Process_display(const Object* cast, RichString* out);
 
@@ -282,8 +282,6 @@ void Process_toggleTag(Process* this);
 bool Process_isNew(const Process* this);
 
 bool Process_isTomb(const Process* this);
-
-bool Process_setPriority(Process* this, int priority);
 
 bool Process_changePriorityBy(Process* this, Arg delta);
 

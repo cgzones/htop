@@ -63,10 +63,10 @@ char* String_readLine(FILE* fd) ATTR_MALLOC;
 size_t String_safeStrncpy(char *restrict dest, const char *restrict src, size_t size);
 
 ATTR_FORMAT(printf, 2, 3)
-int xAsprintf(char** strp, const char* fmt, ...);
+unsigned int xAsprintf(char** strp, const char* fmt, ...);
 
 ATTR_FORMAT(printf, 3, 4)
-int xSnprintf(char* buf, size_t len, const char* fmt, ...);
+unsigned int xSnprintf(char* buf, size_t len, const char* fmt, ...);
 
 char* xStrdup(const char* str) ATTR_NONNULL ATTR_MALLOC;
 void free_and_xStrdup(char** ptr, const char* str);
