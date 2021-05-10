@@ -126,6 +126,7 @@ bool Action_setUserOnly(const char* userName, uid_t* userId) {
    return false;
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 static void tagAllChildren(Panel* panel, Row* parent) {
    parent->tag = true;
    int parent_id = parent->id;

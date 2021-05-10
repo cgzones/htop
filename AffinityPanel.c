@@ -157,6 +157,7 @@ static void AffinityPanel_updateItem(AffinityPanel* this, MaskItem* item) {
    Panel_add(super, (Object*) item);
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 static void AffinityPanel_updateTopo(AffinityPanel* this, MaskItem* item) {
    AffinityPanel_updateItem(this, item);
 
@@ -268,7 +269,7 @@ static MaskItem* AffinityPanel_addObject(AffinityPanel* this, hwloc_obj_t obj, u
    const char* index_prefix = "#";
    unsigned depth = obj->depth;
    unsigned index = obj->logical_index;
-   size_t off = 0, left = 10 * depth;
+   size_t off = 0, left = (size_t)10 * depth;
    char buf[64], indent_buf[left + 1];
 
    if (obj->type == HWLOC_OBJ_PU) {
@@ -319,6 +320,7 @@ static MaskItem* AffinityPanel_addObject(AffinityPanel* this, hwloc_obj_t obj, u
    return item;
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 static MaskItem* AffinityPanel_buildTopology(AffinityPanel* this, hwloc_obj_t obj, unsigned indent, MaskItem* parent) {
    MaskItem* item = AffinityPanel_addObject(this, obj, indent, parent);
    if (obj->next_sibling) {

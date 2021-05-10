@@ -137,7 +137,7 @@ static void TraceScreen_updateTrace(InfoScreen* super) {
    assert(fd_strace != -1);
 
    fd_set fds;
-   FD_ZERO(&fds);
+   FD_ZERO(&fds);  // NOLINT(hicpp-no-assembler)
 // FD_SET(STDIN_FILENO, &fds);
    FD_SET(fd_strace, &fds);
 

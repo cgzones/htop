@@ -44,6 +44,7 @@ int Compat_faccessat(int dirfd,
 #endif
 
    // Error out on unsupported configurations
+   // NOLINTNEXTLINE(google-readability-casting)
    if (dirfd != (int)AT_FDCWD || mode != F_OK) {
       errno = EINVAL;
       return -1;

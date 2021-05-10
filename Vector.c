@@ -133,6 +133,7 @@ static int partition(Object** array, int left, int right, int pivotIndex, Object
    return storeIndex;
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 static void quickSort(Object** array, int left, int right, Object_Compare compare) {
    if (left >= right)
       return;
@@ -220,7 +221,7 @@ void Vector_insert(Vector* this, int idx, void* data_) {
    Vector_resizeIfNecessary(this, this->items + 1);
    //assert(this->array[this->items] == NULL);
    if (idx < this->items) {
-      memmove(&this->array[idx + 1], &this->array[idx], (this->items - idx) * sizeof(this->array[0]));
+      memmove(&this->array[idx + 1], &this->array[idx], (this->items - idx) * sizeof(this->array[0]));  // NOLINT(bugprone-sizeof-expression)
    }
    this->array[idx] = data;
    this->items++;
@@ -234,7 +235,7 @@ Object* Vector_take(Vector* this, int idx) {
    assert(removed);
    this->items--;
    if (idx < this->items) {
-      memmove(&this->array[idx], &this->array[idx + 1], (this->items - idx) * sizeof(this->array[0]));
+      memmove(&this->array[idx], &this->array[idx + 1], (this->items - idx) * sizeof(this->array[0]));  // NOLINT(bugprone-sizeof-expression)
    }
    this->array[this->items] = NULL;
    assert(Vector_isConsistent(this));
@@ -286,6 +287,7 @@ void Vector_compact(Vector* this) {
 
    // one deletion: use memmove, which should be faster
    if (this->dirty_count == 1) {
+      // NOLINTNEXTLINE(bugprone-sizeof-expression)
       memmove(&this->array[idx], &this->array[idx + 1], (this->items - idx - 1) * sizeof(this->array[0]));
       this->array[this->items - 1] = NULL;
    } else {

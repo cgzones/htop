@@ -455,7 +455,7 @@ static bool Settings_read(Settings* this, const char* fileName, unsigned int ini
          this->headerMargin = atoi(option[1]);
       } else if (String_eq(option[0], "screen_tabs")) {
          this->screenTabs = atoi(option[1]);
-      } else if (String_eq(option[0], "expand_system_time")) {
+      } else if (String_eq(option[0], "expand_system_time")) {  // NOLINT(bugprone-branch-clone)
          // Compatibility option.
          this->detailedCPUTime = atoi(option[1]);
       } else if (String_eq(option[0], "detailed_cpu_time")) {
