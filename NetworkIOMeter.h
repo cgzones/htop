@@ -1,6 +1,10 @@
 #ifndef HEADER_NetworkIOMeter
 #define HEADER_NetworkIOMeter
 
+#include "config.h" // IWYU pragma: keep
+
+#include <stdint.h>
+
 #include "Meter.h"
 
 

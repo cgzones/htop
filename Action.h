@@ -32,7 +32,7 @@ typedef enum {
    HTOP_UPDATE_PANELHDR = 0x41, // implies HTOP_REFRESH
 } Htop_Reaction;
 
-struct MainPanel_;
+struct MainPanel_;  // IWYU pragma: keep
 
 typedef struct State_ {
    Settings* settings;

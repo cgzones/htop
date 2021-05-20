@@ -12,6 +12,7 @@ in the source distribution for its full text.
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "CRT.h"
