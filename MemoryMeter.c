@@ -51,7 +51,7 @@ static void MemoryMeter_updateValues(Meter* this) {
    if (isPositive(this->values[MEMORY_METER_COMPRESSED]))
       used += this->values[MEMORY_METER_COMPRESSED];
 
-   written = Meter_humanUnit(buffer, used, size);
+   written = Meter_humanUnit(buffer, isnan(this->values[MEMORY_METER_AVAILABLE]) ? used : this->total - this->values[MEMORY_METER_AVAILABLE], size);
    METER_BUFFER_CHECK(buffer, size, written);
 
    METER_BUFFER_APPEND_CHR(buffer, size, '/');
