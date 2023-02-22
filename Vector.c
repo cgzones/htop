@@ -66,6 +66,12 @@ static bool Vector_isConsistent(const Vector* this) {
    assert(this->items <= this->arraySize);
    assert(!Vector_isDirty(this));
 
+   int items = 0;
+   for (int i = 0; i < this->arraySize; i++)
+      if (this->array[i])
+         items++;
+   assert(this->items == items);
+
    return true;
 }
 
