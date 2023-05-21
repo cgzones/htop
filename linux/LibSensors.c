@@ -152,7 +152,7 @@ static int tempDriverPriority(const sensors_chip_name* chip) {
 void LibSensors_getCPUTemperatures(CPUData* cpus, unsigned int existingCPUs, unsigned int activeCPUs) {
    assert(existingCPUs > 0 && existingCPUs < 16384);
 
-   double* data = xMallocArray(existingCPUs + 1, sizeof(double));
+   float* data = xMallocArray(existingCPUs + 1, sizeof(float));
    for (size_t i = 0; i <= existingCPUs; i++)
       data[i] = NAN;
 
