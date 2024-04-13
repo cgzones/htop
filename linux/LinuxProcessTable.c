@@ -22,7 +22,6 @@ in the source distribution for its full text.
 #include <string.h>
 #include <syscall.h>
 #include <unistd.h>
-#include <linux/capability.h> // raw syscall, no libcap  // IWYU pragma: keep // IWYU pragma: no_include <sys/capability.h>
 #include <sys/stat.h>
 
 #include "Compat.h"
@@ -59,6 +58,24 @@ in the source distribution for its full text.
 #ifndef PF_KTHREAD
 #define PF_KTHREAD 0x00200000
 #endif
+
+/*
+ * Copied from <linux/capability.h>, see
+ * https://github.com/torvalds/linux/blob/e8f897f4afef0031fe618a8e94127a0934896aba/include/uapi/linux/capability.h#L36-L48
+ */
+struct __user_cap_header_struct {
+   uint32_t version;
+   int pid;
+};
+struct __user_cap_data_struct {
+   uint32_t effective;
+   uint32_t permitted;
+   uint32_t inheritable;
+};
+#ifndef _LINUX_CAPABILITY_VERSION_3
+#define _LINUX_CAPABILITY_VERSION_3  0x20080522
+#endif
+
 
 /* Inode number of the PID namespace of htop */
 static ino_t rootPidNs = (ino_t)-1;
